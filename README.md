@@ -20,7 +20,7 @@ The engine relies on the following standard libraries:
 
 https://drive.google.com/file/d/1Hy-GlGPFk-HIt-N0c91N4J2MraC7aia9/view?usp=sharing
 
-**Dependencies (Download and copy the `lib/`, `bin/`, and `vendor/` folders to the root directory):** [Last modification: 2026-02-26]
+**Dependencies (Download and copy the lib/, bin/, and vendor/ folders to the root directory):** [Last modification: 2026-02-26]
 
 https://drive.google.com/file/d/1Ei84tEMhA8WJvQhv2nmH_nvSTqyWSOyP/view?usp=sharing
 
@@ -36,4 +36,6 @@ https://drive.google.com/file/d/1F-KKk79e7FSkVZZ5vDfbVjtj0b_yY7wd/view?usp=shari
 * vendor/ - External dependencies (e.g. Lua source code, GLAD).
 * bin/ - The output directory for the compiled executable.
 
-The program can be compiled using the make command in the terminal.
+## Compilation
+
+The program can be compiled using the **make** command in the terminal.
