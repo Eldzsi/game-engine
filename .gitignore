@@ -1,0 +1,12 @@
+*.exe
+*.dll
+*.o
+
+vendor/
+lib/
+
+assets/models/
+assets/sounds/
+assets/textures/
+
+.vscode/
