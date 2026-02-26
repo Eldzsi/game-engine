@@ -16,15 +16,15 @@ The engine relies on the following standard libraries:
 * **SDL2_mixer:** Audio handling
 * **Lua 5.5.0:** Embedded scripting language for logic, map generation and user interface
 
-**Assets (Download and copy the assets/ folder to the root directory):** [Last modification: 2026-02-16]
+**Assets (Download and copy the assets/ folder to the root directory):** [Last modification: 2026-02-26]
 
 https://drive.google.com/file/d/1Hy-GlGPFk-HIt-N0c91N4J2MraC7aia9/view?usp=sharing
 
-**Dependencies (Download and copy the `lib/`, `bin/`, and `vendor/` folders to the root directory):** [Last modification: 2026-02-16]
+**Dependencies (Download and copy the `lib/`, `bin/`, and `vendor/` folders to the root directory):** [Last modification: 2026-02-26]
 
 https://drive.google.com/file/d/1Ei84tEMhA8WJvQhv2nmH_nvSTqyWSOyP/view?usp=sharing
 
-**Ready to play version:** [Last modification: 2026-02-16]
+**Ready to play version:** [Last modification: 2026-02-26]
 
 https://drive.google.com/file/d/1F-KKk79e7FSkVZZ5vDfbVjtj0b_yY7wd/view?usp=sharing
 
