@@ -9,4 +9,6 @@ assets/models/
 assets/sounds/
 assets/textures/
 
+bin/sdl2-config
+
 .vscode/
