@@ -8,8 +8,7 @@
 
 #include <stdbool.h>
 
-typedef struct App
-{
+typedef struct App {
     SDL_Window* window;
     SDL_GLContext gl_context;
     bool is_running;

@@ -6,17 +6,17 @@
 #include <stdio.h>
 
 void init_scene(Scene* scene) {
-    scene->material.ambient.red   = 0.5;
+    scene->material.ambient.red = 0.5;
     scene->material.ambient.green = 0.5;
-    scene->material.ambient.blue  = 0.5;
+    scene->material.ambient.blue = 0.5;
 
-    scene->material.diffuse.red   = 0.8;
+    scene->material.diffuse.red = 0.8;
     scene->material.diffuse.green = 0.75;
-    scene->material.diffuse.blue  = 0.65;
+    scene->material.diffuse.blue = 0.65;
 
-    scene->material.specular.red   = 0.3;
+    scene->material.specular.red = 0.3;
     scene->material.specular.green = 0.3;
-    scene->material.specular.blue  = 0.3;
+    scene->material.specular.blue = 0.3;
 
     scene->material.shininess = 50.0;
     scene->entity_count = 0;
@@ -76,10 +76,10 @@ void draw_floor() {
     Model* cube = get_model("assets/models/cube.obj");
     
     if (cube != NULL) {
-        GLfloat floor_ambient[]  = { 0.3f, 0.3f, 0.3f, 1.0f };
-        GLfloat floor_diffuse[]  = { 0.4f, 0.4f, 0.4f, 1.0f };
-        GLfloat floor_specular[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        GLfloat floor_shininess  = 0.0f;
+        GLfloat floor_ambient[] = {0.3f, 0.3f, 0.3f, 1.0f};
+        GLfloat floor_diffuse[] = {0.4f, 0.4f, 0.4f, 1.0f};
+        GLfloat floor_specular[] = {0.0f, 0.0f, 0.0f, 1.0f};
+        GLfloat floor_shininess = 0.0f;
 
         glMaterialfv(GL_FRONT, GL_AMBIENT, floor_ambient);
         glMaterialfv(GL_FRONT, GL_DIFFUSE, floor_diffuse);
