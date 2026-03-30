@@ -1,10 +1,11 @@
 #ifndef TEXTURE_H
 #define TEXTURE_H
 
-#include <GL/gl.h>
+#include <glad/glad.h>
 
-typedef GLubyte Pixel[3];
-
-GLuint load_texture(char* filename);
+void init_texture_cache();
+GLuint get_texture(const char* filename);
+void free_texture_cache();
+GLuint load_cubemap(const char* faces[6]);
 
 #endif

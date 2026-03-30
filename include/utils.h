@@ -1,22 +1,20 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-typedef struct vec3 {
-    float x;
-    float y;
-    float z;
-} vec3;
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
-typedef struct Color {
-    float red;
-    float green;
-    float blue;
+typedef struct {
+    float x, y, z;
+} vec3_t;
+
+typedef struct {
+    float red, green, blue;
 } Color;
 
-typedef struct Material {
-    struct Color ambient;
-    struct Color diffuse;
-    struct Color specular;
+typedef struct {
+    Color specular;
     float shininess;
 } Material;
 

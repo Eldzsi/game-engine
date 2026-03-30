@@ -2,34 +2,31 @@
 #define CAMERA_H
 
 #include "utils.h"
+#include "shader.h"
+#include "collision.h"
 
 #include <stdbool.h>
 
-typedef struct Camera {
-    vec3 position;
-    vec3 rotation;
-    vec3 speed;
+struct Scene; 
+typedef struct Scene Scene;
 
+typedef struct {
+    vec3_t position;
+    vec3_t rotation;
+    vec3_t speed;
     float vertical_velocity;
-    bool is_grounded;
-    bool is_crouching;
-    bool is_sprinting;
-    
+    bool is_grounded, is_crouching, is_sprinting, is_jumping;
     float current_height;
+    mat4 view_matrix;
+    int ground_entity_id;
 } Camera;
 
 void init_camera(Camera* camera);
-
-void update_camera(Camera* camera, double time);
-
+void update_camera(Camera* camera, struct Scene* scene, double time);
 void camera_jump(Camera* camera);
-
-void set_view(const Camera* camera);
-
+void set_view(Camera* camera, Shader* shader);
 void rotate_camera(Camera* camera, double horizontal, double vertical);
-
 void set_camera_speed(Camera* camera, double speed);
-
 void set_camera_side_speed(Camera* camera, double speed);
 
 #endif
