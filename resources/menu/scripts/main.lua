@@ -1,89 +1,152 @@
-local menuState = "main"
 local sx, sy = getScreenSize()
 
+local font = "/assets/fonts/montserrat.ttf"
+
+local menuState = "main"
+
+local levels = {"test", "desert", "lava"}
+local levelButtons = {} 
+
 local btnPlay = {x = 0, y = 0, w = 200, h = 50}
-local btnLevel1 = {x = 0, y = 0, w = 0, h = 0}
-local btnLevel2 = {x = 0, y = 0, w = 0, h = 0}
-local btnLevel3 = {x = 0, y = 0, w = 0, h = 0}
-local btnExitImg = {w = 64, h = 64}
+local btnExitImg = {x = 0, y = 0, w = 64, h = 64}
+local btnResume = {x = 0, y = 0, w = 250, h = 40}
+local btnSettings = {x = 0, y = 0, w = 250, h = 40}
+local btnToMenu = {x = 0, y = 0, w = 250, h = 40}
+local btnQuit = {x = 0, y = 0, w = 250, h = 40}
 
-local btnResume = {w = 250, h = 40}
-local btnSettings = {w = 250, h = 40}
-local btnToMenu = {w = 250, h = 40}
-local btnQuit = {w = 250, h = 40}
+local function isMouseInBox(mx, my, box)
+    return mx >= box.x and mx <= (box.x + box.w) and my >= box.y and my <= (box.y + box.h)
+end
 
-function drawMainMenu()
+function drawMenu()
     if menuState == "hidden" then return end
 
     sx, sy = getScreenSize()
     
     if menuState == "main" then
-        drawImage(0, 0, sx, sy, "assets/textures/menu_background.png")
-        drawText("v1.0.0", 5, sy - 22, "assets/fonts/montserrat.ttf", 16, 1, 1, 1, 1, "left")
-
-        btnPlay.x = (sx / 2) - (btnPlay.w / 2)
-        btnPlay.y = (sy / 2) - 25
-        drawRectangle(btnPlay.x, btnPlay.y, btnPlay.w, btnPlay.h, 0.2, 0.6, 1.0, 1.0)
-        drawText("Play", btnPlay.x + (btnPlay.w / 2), btnPlay.y + 10, "assets/fonts/montserrat.ttf", 24, 1, 1, 1, 1, "center")
-
-        btnExitImg.x = sx - 70
-        btnExitImg.y = sy - 70
-        drawImage(btnExitImg.x, btnExitImg.y, btnExitImg.w, btnExitImg.h, "assets/textures/exit.png", 1, 1, 1, 1)
-
+        drawMainMenu()
     elseif menuState == "levels" then
-        drawImage(0, 0, sx, sy, "assets/textures/menu_background.png")
-        drawText("Choose a Level", sx / 2, 80, "assets/fonts/montserrat.ttf", 40, 1, 1, 1, 1, "center")
-
-        local boxW, boxH = 280, 280
-        local gap = 50
-        local totalWidth = (boxW * 3) + (gap * 2)
-        
-        local startX = (sx / 2) - (totalWidth / 2)
-        local startY = (sy / 2) - (boxH / 2) + 20
-
-        btnLevel1.x, btnLevel1.y, btnLevel1.w, btnLevel1.h = startX, startY, boxW, boxH
-        btnLevel2.x, btnLevel2.y, btnLevel2.w, btnLevel2.h = startX + boxW + gap, startY, boxW, boxH
-        btnLevel3.x, btnLevel3.y, btnLevel3.w, btnLevel3.h = startX + (boxW * 2) + (gap * 2), startY, boxW, boxH
-
-        drawRectangle(btnLevel1.x, btnLevel1.y, btnLevel1.w, btnLevel1.h, 0.3, 0.3, 0.3, 1.0)
-        drawText("Level 1", btnLevel1.x + (btnLevel1.w / 2), btnLevel1.y + (boxH / 2) - 20, "assets/fonts/montserrat.ttf", 28, 1, 1, 1, 1, "center")
-        drawText("Test", btnLevel1.x + (btnLevel1.w / 2), btnLevel1.y + (boxH / 2) + 20, "assets/fonts/montserrat.ttf", 20, 0.8, 0.8, 0.8, 1, "center")
-
-        drawRectangle(btnLevel2.x, btnLevel2.y, btnLevel2.w, btnLevel2.h, 0.4, 0.3, 0.2, 1.0)
-        drawText("Level 2", btnLevel2.x + (btnLevel2.w / 2), btnLevel2.y + (boxH / 2) - 20, "assets/fonts/montserrat.ttf", 28, 1, 1, 1, 1, "center")
-        drawText("Lava", btnLevel2.x + (btnLevel2.w / 2), btnLevel2.y + (boxH / 2) + 20, "assets/fonts/montserrat.ttf", 20, 0.8, 0.8, 0.8, 1, "center")
-
-        drawRectangle(btnLevel3.x, btnLevel3.y, btnLevel3.w, btnLevel3.h, 0.4, 0.3, 0.2, 1.0)
-        drawText("Level 3", btnLevel3.x + (btnLevel3.w / 2), btnLevel3.y + (boxH / 2) - 20, "assets/fonts/montserrat.ttf", 28, 1, 1, 1, 1, "center")
-        drawText("Forest", btnLevel3.x + (btnLevel3.w / 2), btnLevel3.y + (boxH / 2) + 20, "assets/fonts/montserrat.ttf", 20, 0.8, 0.8, 0.8, 1, "center")
-        
-        drawText("< Back", 30, 30, "assets/fonts/montserrat.ttf", 24, 1, 1, 1, 1, "left")
-
+        drawLevels()
     elseif menuState == "pause" then
-        drawRectangle(0, 0, sx, sy, 0.0, 0.0, 0.0, 0.7)
-        drawText("Paused", sx / 2, sy/2 - 230, "assets/fonts/montserrat.ttf", 40, 1, 1, 1, 1, "center")
-
-        local startY = sy/2 - 170
-        local gap = 60
-
-        btnResume.x, btnResume.y = (sx / 2) - (btnResume.w / 2), startY
-        drawRectangle(btnResume.x, btnResume.y, btnResume.w, btnResume.h, 0.2, 0.6, 1.0, 1.0)
-        drawText("Resume", sx / 2, btnResume.y + 8, "assets/fonts/montserrat.ttf", 20, 1, 1, 1, 1, "center")
-
-        btnSettings.x, btnSettings.y = (sx / 2) - (btnSettings.w / 2), startY + gap
-        drawRectangle(btnSettings.x, btnSettings.y, btnSettings.w, btnSettings.h, 0.4, 0.4, 0.4, 1.0)
-        drawText("Settings", sx / 2, btnSettings.y + 8, "assets/fonts/montserrat.ttf", 20, 1, 1, 1, 1, "center")
-
-        btnToMenu.x, btnToMenu.y = (sx / 2) - (btnToMenu.w / 2), startY + (gap * 2)
-        drawRectangle(btnToMenu.x, btnToMenu.y, btnToMenu.w, btnToMenu.h, 0.8, 0.5, 0.2, 1.0)
-        drawText("Main Menu", sx / 2, btnToMenu.y + 8, "assets/fonts/montserrat.ttf", 20, 1, 1, 1, 1, "center")
-
-        btnQuit.x, btnQuit.y = (sx / 2) - (btnQuit.w / 2), startY + (gap * 3)
-        drawRectangle(btnQuit.x, btnQuit.y, btnQuit.w, btnQuit.h, 0.8, 0.2, 0.2, 1.0)
-        drawText("Quit Game", sx / 2, btnQuit.y + 8, "assets/fonts/montserrat.ttf", 20, 1, 1, 1, 1, "center")
+        drawPauseMenu()
     end
 end
-addEventHandler("onRender", drawMainMenu)
+addEventHandler("onRender", drawMenu)
+
+function drawMainMenu()
+    drawImage(0, 0, sx, sy, "assets/textures/menu_background.png")
+    drawText("v1.0.0", 5, sy - 22, font, 16, 1, 1, 1, 1, "left")
+
+    btnPlay.x = (sx / 2) - (btnPlay.w / 2)
+    btnPlay.y = (sy / 2) - 25
+    drawRectangle(btnPlay.x, btnPlay.y, btnPlay.w, btnPlay.h, 0.2, 0.6, 1.0, 1.0)
+    drawText("Play", btnPlay.x + (btnPlay.w / 2), btnPlay.y + 10, font, 24, 1, 1, 1, 1, "center")
+
+    btnExitImg.x = sx - 70
+    btnExitImg.y = sy - 70
+    drawImage(btnExitImg.x, btnExitImg.y, btnExitImg.w, btnExitImg.h, "assets/textures/exit.png", 1, 1, 1, 1)
+end
+
+function drawLevels()
+    drawImage(0, 0, sx, sy, "assets/textures/menu_background.png")
+
+    local boxW, boxH = 220, 220
+    local gapX, gapY = 30, 40
+    local cols = 4
+
+    levelButtons = {} 
+    
+    local validLevels = {}
+    for _, resName in ipairs(levels) do
+        if resName ~= "" and #validLevels < 8 then
+            table.insert(validLevels, resName)
+        end
+    end
+
+    local totalValid = #validLevels
+    local totalGridHeight = 0
+    local startY = sy / 2
+
+    if totalValid > 0 then
+        local totalRows = math.ceil(totalValid / cols)
+        totalGridHeight = (totalRows * boxH) + ((totalRows - 1) * gapY)
+        startY = (sy / 2) - (totalGridHeight / 2)
+    end
+
+    drawText("Choose a Level", sx / 2, startY - 80, font, 40, 1, 1, 1, 1, "center")
+
+    if totalValid > 0 then
+        for i, resName in ipairs(validLevels) do
+            local index = i - 1
+            local col = index % cols
+            local row = math.floor(index / cols)
+
+            local itemsInThisRow = cols
+            if row == math.floor((totalValid - 1) / cols) then
+                itemsInThisRow = totalValid - (row * cols)
+            end
+
+            local rowWidth = (itemsInThisRow * boxW) + ((itemsInThisRow - 1) * gapX)
+            local rowStartX = (sx / 2) - (rowWidth / 2)
+
+            local x = rowStartX + (col * (boxW + gapX))
+            local y = startY + (row * (boxH + gapY))
+
+            local info = (type(getResourceInfo) == "function") and getResourceInfo(resName) or nil
+            local displayName = (info and info.name) or resName
+
+            drawRectangle(x, y, boxW, boxH, 0.25, 0.3, 0.35, 1.0)
+            
+            drawText(displayName, x + (boxW / 2), y + (boxH / 2) - 10, font, 28, 1, 1, 1, 1, "center")
+
+            table.insert(levelButtons, {x = x, y = y, w = boxW, h = boxH, resource = resName})
+        end
+    end
+    
+    drawText("< Back", 30, 30, font, 24, 1, 1, 1, 1, "left")
+end
+
+function drawPauseMenu()
+    drawRectangle(0, 0, sx, sy, 0.0, 0.0, 0.0, 0.7)
+    drawText("Paused", sx / 2, sy/2 - 230, font, 40, 1, 1, 1, 1, "center")
+
+    local startY = sy/2 - 170
+    local gap = 60
+
+    btnResume.x, btnResume.y = (sx / 2) - (btnResume.w / 2), startY
+    drawRectangle(btnResume.x, btnResume.y, btnResume.w, btnResume.h, 0.2, 0.6, 1.0, 1.0)
+    drawText("Resume", sx / 2, btnResume.y + 8, font, 20, 1, 1, 1, 1, "center")
+
+    btnSettings.x, btnSettings.y = (sx / 2) - (btnSettings.w / 2), startY + gap
+    drawRectangle(btnSettings.x, btnSettings.y, btnSettings.w, btnSettings.h, 0.4, 0.4, 0.4, 1.0)
+    drawText("Settings", sx / 2, btnSettings.y + 8, font, 20, 1, 1, 1, 1, "center")
+
+    btnToMenu.x, btnToMenu.y = (sx / 2) - (btnToMenu.w / 2), startY + (gap * 2)
+    drawRectangle(btnToMenu.x, btnToMenu.y, btnToMenu.w, btnToMenu.h, 0.8, 0.5, 0.2, 1.0)
+    drawText("Main Menu", sx / 2, btnToMenu.y + 8, font, 20, 1, 1, 1, 1, "center")
+
+    btnQuit.x, btnQuit.y = (sx / 2) - (btnQuit.w / 2), startY + (gap * 3)
+    drawRectangle(btnQuit.x, btnQuit.y, btnQuit.w, btnQuit.h, 0.8, 0.2, 0.2, 1.0)
+    drawText("Quit Game", sx / 2, btnQuit.y + 8, font, 20, 1, 1, 1, 1, "center")
+
+    drawResourceInfo()
+end
+
+function drawResourceInfo(currentRes)
+    local currentRes = (type(getRunningGamemode) == "function") and getRunningGamemode() or nil
+    if currentRes then
+        local info = (type(getResourceInfo) == "function") and getResourceInfo(currentRes) or nil
+        if info then
+            local pW, pH = 300, 120
+            local px, py = sx - pW - 20, sy - pH - 20
+            drawRectangle(px, py, pW, pH, 0.15, 0.15, 0.15, 0.9)
+            drawText(info.name, px + 10, py + 6, font, 20, 1, 0.8, 0, 1, "left")
+            drawText("Author: " .. (info.author or "Unknown"), px + 10, py + 34, font, 14, 0.8, 0.8, 0.8, 1, "left")
+            drawText("Version: " .. (info.version or "1.0"), px + 10, py + 54, font, 14, 0.8, 0.8, 0.8, 1, "left")
+            drawText("Description: " .. info.description or "", px + 10, py + 75, font, 12, 0.6, 0.6, 0.6, 1, "left")
+        end
+    end
+end
 
 function onMenuKey(key, isPressed)
     if isPressed and key == "Escape" then
@@ -98,10 +161,6 @@ function onMenuKey(key, isPressed)
 end
 addEventHandler("onKey", onMenuKey)
 
-local function isMouseInBox(mx, my, box)
-    return mx >= box.x and mx <= (box.x + box.w) and my >= box.y and my <= (box.y + box.h)
-end
-
 function onMenuClick(button, isPressed, mx, my)
     if menuState == "hidden" or not isPressed or button ~= 1 then return end
 
@@ -113,18 +172,13 @@ function onMenuClick(button, isPressed, mx, my)
         end
 
     elseif menuState == "levels" then
-        if isMouseInBox(mx, my, btnLevel1) then
-            menuState = "hidden"
-            showCursor(false) 
-            startResource("test")
-        elseif isMouseInBox(mx, my, btnLevel2) then
-            menuState = "hidden"
-            showCursor(false)
-            startResource("lava")
-        elseif isMouseInBox(mx, my, btnLevel3) then
-            menuState = "hidden"
-            showCursor(false)
-            startResource("forest")
+        for i, btn in ipairs(levelButtons) do
+            if isMouseInBox(mx, my, btn) then
+                menuState = "hidden"
+                showCursor(false) 
+                startResource(btn.resource)
+                return
+            end
         end
         
         if mx >= 10 and mx <= 150 and my >= 10 and my <= 60 then
@@ -136,11 +190,12 @@ function onMenuClick(button, isPressed, mx, my)
             menuState = "hidden"
             showCursor(false)
         elseif isMouseInBox(mx, my, btnSettings) then
-            print("Settings opened (Work in progress!)")
         elseif isMouseInBox(mx, my, btnToMenu) then
-            stopResource("test")
-            stopResource("lava")
-            stopResource("forest")
+            for _, resName in ipairs(levels) do
+                if resName ~= "" then
+                    stopResource(resName)
+                end
+            end
             setCameraPosition(0, 5, 50)
             menuState = "main"
         elseif isMouseInBox(mx, my, btnQuit) then
@@ -149,5 +204,15 @@ function onMenuClick(button, isPressed, mx, my)
     end
 end
 addEventHandler("onClick", onMenuClick)
+
+addEventHandler("onGamemodeStart", function(resName)
+    menuState = "hidden"
+    showCursor(false)
+end)
+
+addEventHandler("onGamemodeStop", function(resName)
+    menuState = "main"
+    showCursor(true)
+end)
 
 showCursor(true)

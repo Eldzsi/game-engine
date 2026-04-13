@@ -8,8 +8,8 @@
 #include <stdbool.h>
 
 typedef struct {
-    vec3_t position;
-    vec3_t normal;
+    vec3 position;
+    vec3 normal;
     float u, v;
 } Vertex;
 

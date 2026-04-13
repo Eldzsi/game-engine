@@ -22,7 +22,7 @@ static int model_count = 0;
 
 static bool load_model(Model* model, const char* filename);
 static void free_model(Model* model);
-static void setup_mesh_buffers(Model* model);
+static void setup_buffers(Model* model);
 static void calculate_model_extents(Model* model, vec3 min_p, vec3 max_p);
 
 void init_model_cache() {
@@ -38,15 +38,18 @@ Model* get_model(const char* filename) {
 
     if (model_count < MAX_MODELS) {
         if (load_model(&(model_cache[model_count].model), filename)) {
-            strcpy(model_cache[model_count].filename, filename);
+            strncpy(model_cache[model_count].filename, filename, sizeof(model_cache[model_count].filename) - 1);
+            model_cache[model_count].filename[sizeof(model_cache[model_count].filename) - 1] = '\0';
+
             Model* loaded_model = &(model_cache[model_count].model);
             model_count++;
-            printf("INFO: Model loaded: %s\n", filename);
+
             return loaded_model;
         }
     } else {
         printf("ERROR: Max models reached.\n");
     }
+
     return NULL;
 }
 
@@ -54,18 +57,21 @@ void free_model_cache() {
     for (int i = 0; i < model_count; i++) {
         free_model(&(model_cache[i].model));
     }
+
     model_count = 0;
 }
 
 void draw_model(const Model* model) {
-    if (model->vao == 0) return;
+    if (model->vao == 0) {
+        return;
+    }
 
     glBindVertexArray(model->vao);
     glDrawArrays(GL_TRIANGLES, 0, model->vertex_count);
     glBindVertexArray(0);
 }
 
-static void setup_mesh_buffers(Model* model) {
+static void setup_buffers(Model* model) {
     glGenVertexArrays(1, &model->vao);
     glBindVertexArray(model->vao);
 
@@ -99,6 +105,7 @@ static bool load_model(Model* model, const char* filename) {
     fastObjMesh* mesh = fast_obj_read(filename);
     if (!mesh) {
         printf("ERROR: Failed to load object: %s\n", filename);
+
         return false;
     }
 
@@ -107,44 +114,64 @@ static bool load_model(Model* model, const char* filename) {
     if (model->vertices == NULL) {
         printf("ERROR: Failed to load model.\n");
         fast_obj_destroy(mesh);
+
         return false;
     }
 
-    vec3 min_p; min_p[0] = 1e10f; min_p[1] = 1e10f; min_p[2] = 1e10f;
-    vec3 max_p; max_p[0] = -1e10f; max_p[1] = -1e10f; max_p[2] = -1e10f;
+    vec3 min_p;
+    min_p[0] = 1e10f;
+    min_p[1] = 1e10f;
+    min_p[2] = 1e10f;
+
+    vec3 max_p;
+    max_p[0] = -1e10f;
+    max_p[1] = -1e10f;
+    max_p[2] = -1e10f;
 
     for (int i = 0; i < model->vertex_count; i++) {
-        fastObjIndex idx = mesh->indices[i];
+        fastObjIndex index = mesh->indices[i];
         
-        float px = mesh->positions[idx.p * 3 + 0];
-        float py = mesh->positions[idx.p * 3 + 1];
-        float pz = mesh->positions[idx.p * 3 + 2];
+        float px = mesh->positions[index.p * 3 + 0];
+        float py = mesh->positions[index.p * 3 + 1];
+        float pz = mesh->positions[index.p * 3 + 2];
 
-        model->vertices[i].position.x = px;
-        model->vertices[i].position.y = py;
-        model->vertices[i].position.z = pz;
+        model->vertices[i].position[0] = px;
+        model->vertices[i].position[1] = py;
+        model->vertices[i].position[2] = pz;
 
-        if (px < min_p[0]) min_p[0] = px;
-        if (px > max_p[0]) max_p[0] = px;
-        if (py < min_p[1]) min_p[1] = py;
-        if (py > max_p[1]) max_p[1] = py;
-        if (pz < min_p[2]) min_p[2] = pz;
-        if (pz > max_p[2]) max_p[2] = pz;
+        if (px < min_p[0]) {
+            min_p[0] = px;
+        }
+        if (px > max_p[0]) {
+            max_p[0] = px;
+        }
+        if (py < min_p[1]) {
+            min_p[1] = py;
+        }
+        if (py > max_p[1]) {
+            max_p[1] = py;
+        }
+        if (pz < min_p[2]) {
+            min_p[2] = pz;
+        }
+        if (pz > max_p[2]) {
+            max_p[2] = pz;
+        }
 
         if (mesh->normal_count > 0) {
-            model->vertices[i].normal.x = mesh->normals[idx.n * 3 + 0];
-            model->vertices[i].normal.y = mesh->normals[idx.n * 3 + 1];
-            model->vertices[i].normal.z = mesh->normals[idx.n * 3 + 2];
+            model->vertices[i].normal[0] = mesh->normals[index.n * 3 + 0];
+            model->vertices[i].normal[1] = mesh->normals[index.n * 3 + 1];
+            model->vertices[i].normal[2] = mesh->normals[index.n * 3 + 2];
         }
 
         if (mesh->texcoord_count > 0) {
-            model->vertices[i].u = mesh->texcoords[idx.t * 2 + 0];
-            model->vertices[i].v = mesh->texcoords[idx.t * 2 + 1];
+            model->vertices[i].u = mesh->texcoords[index.t * 2 + 0];
+            model->vertices[i].v = mesh->texcoords[index.t * 2 + 1];
         }
     }
 
     calculate_model_extents(model, min_p, max_p);
-    setup_mesh_buffers(model);
+    setup_buffers(model);
 
     fast_obj_destroy(mesh);
     return true;
@@ -155,6 +182,11 @@ static void free_model(Model* model) {
         free(model->vertices);
         model->vertices = NULL;
     }
-    if (model->vbo) glDeleteBuffers(1, &model->vbo);
-    if (model->vao) glDeleteVertexArrays(1, &model->vao);
+
+    if (model->vbo) {
+        glDeleteBuffers(1, &model->vbo);
+    }
+    if (model->vao) {
+        glDeleteVertexArrays(1, &model->vao);
+    }
 }

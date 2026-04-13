@@ -1,0 +1,11 @@
+dofile("lua_core/event.lua")
+dofile("lua_core/data.lua")
+dofile("lua_core/elements.lua")
+dofile("lua_core/timer.lua")
+dofile("lua_core/zone.lua")
+dofile("lua_core/pickup.lua")
+dofile("lua_core/console.lua")
+dofile("lua_core/particle.lua")
+dofile("lua_core/manager.lua")
+
+startResource("menu")

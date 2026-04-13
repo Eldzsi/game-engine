@@ -7,6 +7,7 @@ static char* read_file_to_string(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) {
         printf("ERROR: Failed to open shader file: %s\n", path);
+
         return NULL;
     }
     fseek(file, 0, SEEK_END);
@@ -17,12 +18,14 @@ static char* read_file_to_string(const char* path) {
     if (!buffer) {
         printf("ERROR: Memory allocation failed for shader: %s\n", path);
         fclose(file);
+
         return NULL;
     }
     
     fread(buffer, 1, length, file);
     buffer[length] = '\0';
     fclose(file);
+
     return buffer;
 }
 
@@ -38,8 +41,10 @@ static GLuint compile_shader(GLenum type, const char* source) {
         glGetShaderInfoLog(shader, 512, NULL, info_log);
         printf("ERROR: Shader compilation failed (%d):\n%s\n", type, info_log);
         glDeleteShader(shader);
+
         return 0;
     }
+    
     return shader;
 }
 
@@ -48,8 +53,13 @@ bool load_shader(Shader* shader, const char* vertex_path, const char* fragment_p
     char* fragment_source = read_file_to_string(fragment_path);
 
     if (!vertex_source || !fragment_source) {
-        if (vertex_source) free(vertex_source);
-        if (fragment_source) free(fragment_source);
+        if (vertex_source) {
+            free(vertex_source);
+        }
+        if (fragment_source) {
+            free(fragment_source);
+        }
+
         return false;
     }
 
@@ -60,8 +70,13 @@ bool load_shader(Shader* shader, const char* vertex_path, const char* fragment_p
     free(fragment_source);
 
     if (vertex_shader == 0 || fragment_shader == 0) {
-        if (vertex_shader) glDeleteShader(vertex_shader);
-        if (fragment_shader) glDeleteShader(fragment_shader);
+        if (vertex_shader) {
+            glDeleteShader(vertex_shader);
+        }
+        if (fragment_shader) {
+            glDeleteShader(fragment_shader);
+        }
+        
         return false;
     }
 

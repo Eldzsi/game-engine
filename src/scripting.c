@@ -19,6 +19,7 @@ static lua_State* L;
 static Camera* engine_camera = NULL;
 static Scene* engine_scene = NULL;
 static ParticleSystem* engine_ps = NULL;
+static Terrain* engine_terrain = NULL;
 
 static int l_set_sky_color(lua_State* L) {
     float r = (float)luaL_checknumber(L, 1);
@@ -40,14 +41,16 @@ static int l_set_sky_color(lua_State* L) {
 
 static int l_get_camera_position(lua_State* L) {
     if (engine_camera != NULL) {
-        lua_pushnumber(L, engine_camera->position.x);
-        lua_pushnumber(L, engine_camera->position.y);
-        lua_pushnumber(L, engine_camera->position.z);
+        lua_pushnumber(L, engine_camera->position[0]);
+        lua_pushnumber(L, engine_camera->position[1]);
+        lua_pushnumber(L, engine_camera->position[2]);
 
         return 3;
     }
 
-    return 0;
+    lua_pushboolean(L, false);
+
+    return 1;
 }
 
 static int l_set_camera_position(lua_State* L) {
@@ -56,22 +59,29 @@ static int l_set_camera_position(lua_State* L) {
     float z = (float)luaL_checknumber(L, 3);
 
     if (engine_camera != NULL) {
-        engine_camera->position.x = x;
-        engine_camera->position.y = y;
-        engine_camera->position.z = z;
+        engine_camera->position[0] = x;
+        engine_camera->position[1] = y;
+        engine_camera->position[2] = z;
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
     }
 
-    return 0;
+    return 1;
 }
 
 static int l_get_camera_rotation(lua_State* L) {
     if (engine_camera != NULL) {
-        lua_pushnumber(L, engine_camera->rotation.x);
-        lua_pushnumber(L, engine_camera->rotation.y);
-        lua_pushnumber(L, engine_camera->rotation.z);
+        lua_pushnumber(L, engine_camera->rotation[0]);
+        lua_pushnumber(L, engine_camera->rotation[1]);
+        lua_pushnumber(L, engine_camera->rotation[2]);
+
         return 3;
     }
-    return 0;
+    
+    lua_pushboolean(L, false);
+
+    return 1;
 }
 
 static int l_set_camera_rotation(lua_State* L) {
@@ -86,9 +96,9 @@ static int l_set_camera_rotation(lua_State* L) {
         while (rz < 0.0f) rz += 360.0f;
         while (rz > 360.0f) rz -= 360.0f;
 
-        engine_camera->rotation.x = rx;
-        engine_camera->rotation.y = ry;
-        engine_camera->rotation.z = rz;
+        engine_camera->rotation[0] = rx;
+        engine_camera->rotation[1] = ry;
+        engine_camera->rotation[2] = rz;
         
         lua_pushboolean(L, true);
     } else {
@@ -107,11 +117,14 @@ static int l_get_element_position(lua_State* L) {
             lua_pushnumber(L, e->x);
             lua_pushnumber(L, e->y);
             lua_pushnumber(L, e->z);
+
             return 3;
         }
     }
 
-    return 0; 
+    lua_pushboolean(L, false);
+
+    return 1; 
 }
 
 static int l_set_element_position(lua_State* L) {
@@ -132,9 +145,11 @@ static int l_set_element_position(lua_State* L) {
             }
             
             lua_pushboolean(L, true);
+
             return 1;
         }
     }
+    
     lua_pushboolean(L, false);
 
     return 1;
@@ -144,19 +159,30 @@ static int l_play_sound(lua_State* L) {
     const char* filename = luaL_checkstring(L, 1);
     bool looped = lua_toboolean(L, 2); 
     int channel = play_sound(filename, looped);
-    if (channel != -1) lua_pushinteger(L, channel); else lua_pushnil(L);
+    if (channel != -1) {
+        lua_pushinteger(L, channel);
+    } else {
+        lua_pushboolean(L, false);
+    }
 
     return 1;
 }
 
 static int l_play_sound_3d(lua_State* L) {
     const char* filename = luaL_checkstring(L, 1);
+
     float x = (float)luaL_checknumber(L, 2);
     float y = (float)luaL_checknumber(L, 3);
     float z = (float)luaL_checknumber(L, 4);
+
     bool looped = lua_toboolean(L, 5);
+
     int channel = play_sound_3d(filename, x, y, z, looped);
-    if (channel != -1) lua_pushinteger(L, channel); else lua_pushnil(L);
+    if (channel != -1) {
+        lua_pushinteger(L, channel);
+    } else {
+        lua_pushboolean(L, false);
+    }
 
     return 1;
 }
@@ -164,39 +190,51 @@ static int l_play_sound_3d(lua_State* L) {
 static int l_set_sound_max_distance(lua_State* L) {
     int channel = (int)luaL_checkinteger(L, 1);
     set_sound_max_distance(channel, (float)luaL_checknumber(L, 2));
+    
+    lua_pushboolean(L, true);
 
-    return 0;
+    return 1;
 }
 
 static int l_set_sound_volume(lua_State* L) {
     int channel = (int)luaL_checkinteger(L, 1);
     set_sound_volume(channel, (float)luaL_checknumber(L, 2));
 
-    return 0;
+    lua_pushboolean(L, true);
+
+    return 1;
 }
 
 static int l_set_sound_position(lua_State* L) {
     int channel = (int)luaL_checkinteger(L, 1);
     set_sound_position(channel, (float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3), (float)luaL_checknumber(L, 4));
 
-    return 0;
+    lua_pushboolean(L, true);
+
+    return 1;
 }
 
 static int l_get_sound_position(lua_State* L) {
     int channel = (int)luaL_checkinteger(L, 1);
+
     float x, y, z;
     if (get_sound_position(channel, &x, &y, &z)) {
-        lua_pushnumber(L, x); lua_pushnumber(L, y); lua_pushnumber(L, z);
+        lua_pushnumber(L, x); 
+        lua_pushnumber(L, y); 
+        lua_pushnumber(L, z);
 
         return 3;
     }
 
-    return 0;
+    lua_pushboolean(L, false);
+
+    return 1;
 }
 
 static int l_create_object(lua_State* L) {
     const char* modelname = luaL_checkstring(L, 1);
     const char* texturename = luaL_checkstring(L, 2); 
+
     float x = (float)luaL_checknumber(L, 3);          
     float y = (float)luaL_checknumber(L, 4);
     float z = (float)luaL_checknumber(L, 5);
@@ -212,11 +250,13 @@ static int l_create_object(lua_State* L) {
         
         if (actual_id != -1) {
             lua_pushinteger(L, actual_id);
+
             return 1;
         }
     }
 
-    lua_pushnil(L); 
+    lua_pushboolean(L, false); 
+
     return 1;
 }
 
@@ -310,7 +350,9 @@ static int l_set_object_size(lua_State* L) {
 static int l_set_object_glow(lua_State* L) {
     int num_args = lua_gettop(L);
     if (num_args < 5) {
-        return 0;
+        lua_pushboolean(L, false);
+
+        return 1;
     }
 
     int entity_id = (int)luaL_checkinteger(L, 1);
@@ -319,9 +361,14 @@ static int l_set_object_glow(lua_State* L) {
     float g = (float)luaL_checknumber(L, 4);
     float b = (float)luaL_checknumber(L, 5);
 
-    set_entity_glow(engine_scene, entity_id, has_glow, r, g, b);
+    if (engine_scene != NULL && entity_id >= 0 && entity_id < engine_scene->entity_count) {
+        set_entity_glow(engine_scene, entity_id, has_glow, r, g, b);
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
+    }
 
-    return 0;
+    return 1;
 }
 
 static int l_set_object_material(lua_State* L) {
@@ -331,7 +378,7 @@ static int l_set_object_material(lua_State* L) {
     float sb = (float)luaL_checknumber(L, 4);
     float shininess = (float)luaL_checknumber(L, 5);
     
-    if (engine_scene) {
+    if (engine_scene && id >= 0 && id < engine_scene->entity_count) {
         set_entity_material(engine_scene, id, sr, sg, sb, shininess);
         lua_pushboolean(L, true);
     } else {
@@ -341,16 +388,41 @@ static int l_set_object_material(lua_State* L) {
     return 1;
 }
 
-static int l_set_ambient_light(lua_State* L) {
-    if (engine_scene) set_ambient_light(engine_scene, luaL_checknumber(L, 1), luaL_checknumber(L, 2), luaL_checknumber(L, 3));
+static int l_set_object_uv_speed(lua_State* L) {
+    int id = (int)luaL_checkinteger(L, 1);
+    float speed_x = (float)luaL_checknumber(L, 2);
+    float speed_y = (float)luaL_checknumber(L, 3);
 
-    return 0;
+    if (engine_scene != NULL && id >= 0 && id < engine_scene->entity_count) {
+        set_entity_uv_speed(engine_scene, id, speed_x, speed_y);
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
+    }
+
+    return 1;
 }
 
-static int l_set_sun_light(lua_State* L) {
-    if (engine_scene) set_sun_light(engine_scene, luaL_checknumber(L, 1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), luaL_checknumber(L, 4), luaL_checknumber(L, 5), luaL_checknumber(L, 6));
+static int l_set_ambient_light(lua_State* L) {
+    if (engine_scene) {
+        set_ambient_light(engine_scene, luaL_checknumber(L, 1), luaL_checknumber(L, 2), luaL_checknumber(L, 3));
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
+    }
 
-    return 0;
+    return 1;
+}
+
+static int l_set_directional_light(lua_State* L) {
+    if (engine_scene) {
+        set_directional_light(engine_scene, luaL_checknumber(L, 1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), luaL_checknumber(L, 4), luaL_checknumber(L, 5), luaL_checknumber(L, 6));
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
+    }
+
+    return 1;
 }
 
 static int l_create_point_light(lua_State* L) {
@@ -360,12 +432,17 @@ static int l_create_point_light(lua_State* L) {
             luaL_checknumber(L, 4), luaL_checknumber(L, 5), luaL_checknumber(L, 6),
             luaL_checknumber(L, 7), luaL_checknumber(L, 8), luaL_checknumber(L, 9)
         );
-        lua_pushinteger(L, id);
         
-        return 1; 
+        if (id != -1) {
+            lua_pushinteger(L, id);
+
+            return 1; 
+        }
     }
 
-    return 0;
+    lua_pushboolean(L, false);
+
+    return 1;
 }
 
 static int l_set_point_light(lua_State* L) {
@@ -381,11 +458,18 @@ static int l_set_point_light(lua_State* L) {
             if (lua_isnumber(L, 5)) pl->r = (float)lua_tonumber(L, 5);
             if (lua_isnumber(L, 6)) pl->g = (float)lua_tonumber(L, 6);
             if (lua_isnumber(L, 7)) pl->b = (float)lua_tonumber(L, 7);
+            
+            lua_pushboolean(L, true);
+
+            return 1;
         }
     }
 
-    return 0;
+    lua_pushboolean(L, false);
+
+    return 1;
 }
+
 static int l_destroy_point_light(lua_State* L) {
     int id = (int)luaL_checkinteger(L, 1);
     
@@ -408,6 +492,7 @@ static int l_destroy_spot_light(lua_State* L) {
     } else {
         lua_pushboolean(L, false);
     }
+    
     return 1;
 }
 
@@ -421,12 +506,16 @@ static int l_create_spot_light(lua_State* L) {
             (float)luaL_checknumber(L, 12), (float)luaL_checknumber(L, 13), (float)luaL_checknumber(L, 14)
         );
         
-        lua_pushinteger(L, id);
+        if (id != -1) {
+            lua_pushinteger(L, id);
 
-        return 1;
+            return 1;
+        }
     }
 
-    return 0;
+    lua_pushboolean(L, false);
+
+    return 1;
 }
 
 static int l_set_spot_light(lua_State* L) {
@@ -436,27 +525,53 @@ static int l_set_spot_light(lua_State* L) {
         if (id >= 0 && id < MAX_SPOT_LIGHTS && engine_scene->spot_lights[id].is_active) {
             SpotLight* sl = &(engine_scene->spot_lights[id]);
 
-            if (lua_isnumber(L, 2)) sl->x = (float)lua_tonumber(L, 2);
-            if (lua_isnumber(L, 3)) sl->y = (float)lua_tonumber(L, 3);
-            if (lua_isnumber(L, 4)) sl->z = (float)lua_tonumber(L, 4);
+            if (lua_isnumber(L, 2)) {
+                sl->x = (float)lua_tonumber(L, 2);
+            }
+            if (lua_isnumber(L, 3)) {
+                sl->y = (float)lua_tonumber(L, 3);
+            }
+            if (lua_isnumber(L, 4)) {
+                sl->z = (float)lua_tonumber(L, 4);
+            }
 
-            if (lua_isnumber(L, 5)) sl->dir_x = (float)lua_tonumber(L, 5);
-            if (lua_isnumber(L, 6)) sl->dir_y = (float)lua_tonumber(L, 6);
-            if (lua_isnumber(L, 7)) sl->dir_z = (float)lua_tonumber(L, 7);
+            if (lua_isnumber(L, 5)) {
+                sl->dir_x = (float)lua_tonumber(L, 5);
+            }
+            if (lua_isnumber(L, 6)) {
+                sl->dir_y = (float)lua_tonumber(L, 6);
+            }
+            if (lua_isnumber(L, 7)) {
+                sl->dir_z = (float)lua_tonumber(L, 7);
+            }
 
-            if (lua_isnumber(L, 8)) sl->r = (float)lua_tonumber(L, 8);
-            if (lua_isnumber(L, 9)) sl->g = (float)lua_tonumber(L, 9);
-            if (lua_isnumber(L, 10)) sl->b = (float)lua_tonumber(L, 10);
+            if (lua_isnumber(L, 8)) {
+                sl->r = (float)lua_tonumber(L, 8);
+            }
+            if (lua_isnumber(L, 9)) {
+                sl->g = (float)lua_tonumber(L, 9);
+            }
+            if (lua_isnumber(L, 10)) {
+                sl->b = (float)lua_tonumber(L, 10);
+            }
+            
+            lua_pushboolean(L, true);
+
+            return 1;
         }
     }
 
-    return 0;
+    lua_pushboolean(L, false);
+
+    return 1;
 }
 
 static int l_get_screen_size(lua_State* L) {
     SDL_Window* win = SDL_GL_GetCurrentWindow();
     int w = 800, h = 600;
-    if (win) SDL_GetWindowSize(win, &w, &h);
+    if (win) {
+        SDL_GetWindowSize(win, &w, &h);
+    }
     
     lua_pushnumber(L, w);
     lua_pushnumber(L, h);
@@ -476,7 +591,9 @@ static int l_draw_rectangle(lua_State* L) {
     
     draw_rectangle(x, y, w, h, r, g, b, a);
 
-    return 0;
+    lua_pushboolean(L, true);
+
+    return 1;
 }
 
 static int l_draw_image(lua_State* L) {
@@ -484,6 +601,7 @@ static int l_draw_image(lua_State* L) {
     float y = (float)luaL_checknumber(L, 2);
     float w = (float)luaL_checknumber(L, 3);
     float h = (float)luaL_checknumber(L, 4);
+
     const char* path = luaL_checkstring(L, 5);
     
     float r = (float)luaL_optnumber(L, 6, 1.0);
@@ -493,15 +611,23 @@ static int l_draw_image(lua_State* L) {
     
     draw_image(x, y, w, h, path, r, g, b, a);
 
-    return 0;
+    lua_pushboolean(L, true);
+
+    return 1;
 }
 
 static int l_show_cursor(lua_State* L) {
     bool show = lua_toboolean(L, 1);
     
-    SDL_SetRelativeMouseMode(show ? SDL_FALSE : SDL_TRUE);
+    if (show) {
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    } else {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    }
     
-    return 0;
+    lua_pushboolean(L, true);
+
+    return 1;
 }
 
 static int l_draw_text(lua_State* L) {
@@ -520,7 +646,9 @@ static int l_draw_text(lua_State* L) {
 
     draw_text(text, x, y, font, size, r, g, b, a, align);
 
-    return 0;
+    lua_pushboolean(L, true);
+
+    return 1;
 }
 
 static int l_set_element_visible(lua_State* L) {
@@ -561,9 +689,11 @@ static int l_set_element_rotation(lua_State* L) {
             e->ry = (float)luaL_checknumber(L, 3);
             e->rz = (float)luaL_checknumber(L, 4);
             lua_pushboolean(L, true);
+
             return 1;
         }
     }
+    
     lua_pushboolean(L, false);
 
     return 1;
@@ -583,7 +713,9 @@ static int l_get_element_rotation(lua_State* L) {
         }
     }
 
-    return 0;
+    lua_pushboolean(L, false);
+
+    return 1;
 }
 
 static int l_clear_scene(lua_State* L) {
@@ -595,6 +727,12 @@ static int l_clear_scene(lua_State* L) {
         
         engine_scene->point_light_count = 0;
         engine_scene->spot_light_count = 0;
+
+        if (engine_terrain && engine_terrain->vao != 0) {
+            destroy_terrain(engine_terrain);
+            engine_terrain->vao = 0;
+            engine_terrain->heights = NULL;
+        }
         
         lua_pushboolean(L, true);
     } else {
@@ -622,12 +760,18 @@ static int l_stop_sound(lua_State* L) {
 static int l_show_colliders(lua_State* L) {
     bool show = lua_toboolean(L, 1);
     set_show_colliders(show);
+    
+    lua_pushboolean(L, true);
 
-    return 0;
+    return 1;
 }
 
 static int l_emit_particle(lua_State* L) {
-    if (!engine_ps) return 0;
+    if (!engine_ps) {
+        lua_pushboolean(L, false);
+
+        return 1;
+    }
 
     float x = (float)luaL_checknumber(L, 1);
     float y = (float)luaL_checknumber(L, 2);
@@ -644,7 +788,9 @@ static int l_emit_particle(lua_State* L) {
 
     emit_particle(engine_ps, (vec3){x, y, z}, (vec3){vx, vy, vz}, (vec4){r, g, b, a}, life, size);
     
-    return 0;
+    lua_pushboolean(L, true);
+
+    return 1;
 }
 
 static int l_exit_game(lua_State* L) {
@@ -654,22 +800,32 @@ static int l_exit_game(lua_State* L) {
     quit_event.type = SDL_QUIT;
     SDL_PushEvent(&quit_event);
 
-    return 0;
+    lua_pushboolean(L, true);
+    
+    return 1;
 }
 
 static int l_clear_particles(lua_State* L) {
     (void)L;
     if (engine_ps) {
         clear_particles(engine_ps);
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
     }
-    return 0;
+
+    return 1;
 }
 
 static int l_processLineOfSight(lua_State* L) {
-    if (!engine_scene) return 0;
+    if (!engine_scene) {
+        lua_pushboolean(L, false);
 
-    vec3 start = { (float)luaL_checknumber(L, 1), (float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3) };
-    vec3 end   = { (float)luaL_checknumber(L, 4), (float)luaL_checknumber(L, 5), (float)luaL_checknumber(L, 6) };
+        return 1;
+    }
+
+    vec3 start = {(float)luaL_checknumber(L, 1), (float)luaL_checknumber(L, 2), (float)luaL_checknumber(L, 3)};
+    vec3 end = {(float)luaL_checknumber(L, 4), (float)luaL_checknumber(L, 5), (float)luaL_checknumber(L, 6)};
 
     vec3 hit_point;
     int hit_entity_id = -1;
@@ -691,8 +847,8 @@ static int l_processLineOfSight(lua_State* L) {
 
 static int l_get_camera_forward(lua_State* L) {
     if (engine_camera != NULL) {
-        double pitch = engine_camera->rotation.x * (M_PI / 180.0);
-        double yaw   = engine_camera->rotation.z * (M_PI / 180.0);
+        double pitch = engine_camera->rotation[0] * (M_PI / 180.0);
+        double yaw = engine_camera->rotation[2] * (M_PI / 180.0);
 
         float dirX = (float)(-cos(yaw) * cos(pitch));
         float dirY = (float)(-sin(yaw) * cos(pitch));
@@ -705,11 +861,66 @@ static int l_get_camera_forward(lua_State* L) {
         return 3;
     }
 
-    return 0;
+    lua_pushboolean(L, false);
+
+    return 1;
 }
 
 void bind_particle_system(ParticleSystem* ps) {
     engine_ps = ps;
+}
+
+static int l_load_terrain(lua_State* L) {
+    if (!engine_terrain) {
+        lua_pushboolean(L, false);
+
+        return 1;
+    }
+
+    const char* h_path = luaL_checkstring(L, 1);
+    const char* t_path = luaL_checkstring(L, 2);
+    float scale_xz = (float)luaL_checknumber(L, 3);
+    float scale_y = (float)luaL_checknumber(L, 4);
+    
+    float tile_size = (float)luaL_optnumber(L, 5, 0.0f);
+
+    if (engine_terrain->vao != 0) {
+        destroy_terrain(engine_terrain);
+    }
+
+    bool success = init_terrain(engine_terrain, h_path, t_path, scale_xz, scale_y, tile_size);
+    
+    lua_pushboolean(L, success);
+    
+    return 1;
+}
+
+static int l_get_terrain_height(lua_State* L) {
+    if (!engine_terrain) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+    
+    float x = (float)luaL_checknumber(L, 1);
+    float z = (float)luaL_checknumber(L, 2);
+    
+    float y = get_terrain_height(engine_terrain, x, z);
+    lua_pushnumber(L, y);
+
+    return 1;
+}
+
+static int l_unload_terrain(lua_State* L) {
+    if (engine_terrain && engine_terrain->vao != 0) {
+        destroy_terrain(engine_terrain);
+        engine_terrain->vao = 0;
+        engine_terrain->heights = NULL;
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
+    }
+
+    return 1;
 }
 
 void trigger_lua_event(const char* event_name, const char* format, ...) {
@@ -718,6 +929,7 @@ void trigger_lua_event(const char* event_name, const char* format, ...) {
     
     if (!lua_isfunction(L, -1)) {
         lua_pop(L, 1);
+        
         return;
     }
 
@@ -744,14 +956,15 @@ void trigger_lua_event(const char* event_name, const char* format, ...) {
     }
 
     if (lua_pcall(L, param_count, 0, 0) != LUA_OK) { 
-        printf("Error: triggerEvent(%s): %s\n", event_name, lua_tostring(L, -1));
+        printf("ERROR: triggerEvent(%s): %s\n", event_name, lua_tostring(L, -1));
         lua_pop(L, 1);
     }
 }
 
-void init_scripting(Camera* camera, Scene* scene) {
+void init_scripting(Camera* camera, Scene* scene, Terrain* terrain) {
     engine_camera = camera;
     engine_scene = scene;
+    engine_terrain = terrain;
 
     L = luaL_newstate();
     luaL_openlibs(L);
@@ -777,8 +990,9 @@ void init_scripting(Camera* camera, Scene* scene) {
     lua_register(L, "setObjectSize", l_set_object_size);
     lua_register(L, "setObjectGlow", l_set_object_glow);
     lua_register(L, "setObjectMaterial", l_set_object_material);
+    lua_register(L, "setObjectUVSpeed", l_set_object_uv_speed);
     lua_register(L, "setAmbientLight", l_set_ambient_light);
-    lua_register(L, "setSunLight", l_set_sun_light);
+    lua_register(L, "setDirectionalLight", l_set_directional_light);
     lua_register(L, "createPointLight", l_create_point_light);
     lua_register(L, "setPointLight", l_set_point_light);
     lua_register(L, "destroyPointLight", l_destroy_point_light);
@@ -803,8 +1017,11 @@ void init_scripting(Camera* camera, Scene* scene) {
     lua_register(L, "clearParticles", l_clear_particles);
     lua_register(L, "processLineOfSight", l_processLineOfSight);
     lua_register(L, "getCameraForward", l_get_camera_forward);
+    lua_register(L, "loadTerrain", l_load_terrain);
+    lua_register(L, "getTerrainHeight", l_get_terrain_height);
+    lua_register(L, "unloadTerrain", l_unload_terrain);
     
-    if (luaL_dofile(L, "assets/lua_core/init.lua") != LUA_OK) {
+    if (luaL_dofile(L, "lua_core/init.lua") != LUA_OK) {
         printf("ERROR: Lua script: %s\n", lua_tostring(L, -1));
         lua_pop(L, 1);
     } else {

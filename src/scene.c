@@ -9,18 +9,38 @@
 #include <stdio.h>
 #include <math.h>
 
-static bool global_show_colliders = false;
+static bool show_colliders = false;
+
+static const float unit_cube_vertices[] = {
+    -1.0f,  1.0f, -1.0f,   -1.0f, -1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,    1.0f,  1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,   -1.0f, -1.0f, -1.0f,   -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,   -1.0f,  1.0f,  1.0f,   -1.0f, -1.0f,  1.0f,
+
+     1.0f, -1.0f, -1.0f,    1.0f, -1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,    1.0f,  1.0f, -1.0f,    1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,    1.0f, -1.0f,  1.0f,   -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,    1.0f,  1.0f, -1.0f,    1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,   -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,   -1.0f, -1.0f,  1.0f,    1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,   -1.0f, -1.0f,  1.0f,    1.0f, -1.0f,  1.0f
+};
 
 static void update_entity(Entity* e, float elapsed_time);
 static void bind_lights_to_shader(const Scene* scene, Shader* shader);
 static void render_debug_collider(const Entity* e, Shader* shader);
 
 void set_show_colliders(bool show) {
-    global_show_colliders = show;
+    show_colliders = show;
 }
 
 bool get_show_colliders() {
-    return global_show_colliders;
+    return show_colliders;
 }
 
 void init_scene(Scene* scene) {
@@ -36,12 +56,12 @@ void init_scene(Scene* scene) {
     scene->ambient.g = 0.0f; 
     scene->ambient.b = 0.0f;
 
-    scene->sun.dir_x = 0.0f;
-    scene->sun.dir_y = -1.0f;
-    scene->sun.dir_z = -0.5f;
-    scene->sun.r = 0.0f; 
-    scene->sun.g = 0.0f; 
-    scene->sun.b = 0.0f;
+    scene->directional_light.dir_x = 0.0f;
+    scene->directional_light.dir_y = -1.0f;
+    scene->directional_light.dir_z = -0.5f;
+    scene->directional_light.r = 0.0f; 
+    scene->directional_light.g = 0.0f; 
+    scene->directional_light.b = 0.0f;
 
     scene->point_light_count = 0;
     scene->spot_light_count = 0;
@@ -56,6 +76,8 @@ void init_scene(Scene* scene) {
     scene->sky_r = 1.0f;
     scene->sky_g = 1.0f;
     scene->sky_b = 1.0f;
+
+    scene->skybox.is_active = false;
 }
 
 int create_entity(Scene* scene, const char* modelname, const char* texturename, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz) {
@@ -69,7 +91,7 @@ int create_entity(Scene* scene, const char* modelname, const char* texturename, 
     }
 
     if (free_slot == -1) {
-        printf("Error: Max entities reached\n");
+        printf("ERROR: Max entities reached.\n");
         return -1;
     }
 
@@ -84,17 +106,28 @@ int create_entity(Scene* scene, const char* modelname, const char* texturename, 
         Entity* e = &(scene->entities[free_slot]);
         e->model = model;
         e->texture = tex; 
-        e->x = x; e->y = y; e->z = z;
-        e->rx = rx; e->ry = ry; e->rz = rz;
-        e->sx = sx; e->sy = sy; e->sz = sz;
+
+        e->x = x;
+        e->y = y;
+        e->z = z;
+        e->rx = rx;
+        e->ry = ry;
+        e->rz = rz;
+        e->sx = sx;
+        e->sy = sy;
+        e->sz = sz;
 
         e->spec_r = 0.3f;
         e->spec_g = 0.3f;
         e->spec_b = 0.3f;
         e->shininess = 50.0f;
 
-        e->prev_x = x; e->prev_y = y; e->prev_z = z;
-        e->prev_rx = rx; e->prev_ry = ry; e->prev_rz = rz;
+        e->prev_x = x;
+        e->prev_y = y;
+        e->prev_z = z;
+        e->prev_rx = rx;
+        e->prev_ry = ry;
+        e->prev_rz = rz;
         
         e->is_active = true;
         e->is_moving = false;
@@ -105,6 +138,9 @@ int create_entity(Scene* scene, const char* modelname, const char* texturename, 
         e->glow_r = 1.0f; 
         e->glow_g = 1.0f; 
         e->glow_b = 1.0f;
+
+        e->uv_speed_x = 0.0f;
+        e->uv_speed_y = 0.0f;
         
         return free_slot;
     }
@@ -117,8 +153,6 @@ void set_entity_scale(Scene* scene, int entity_id, float sx, float sy, float sz)
         scene->entities[entity_id].sx = sx;
         scene->entities[entity_id].sy = sy;
         scene->entities[entity_id].sz = sz;
-    } else {
-        printf("Warning: Tried to scale non-existent entity ID: %d\n", entity_id);
     }
 }
 
@@ -140,6 +174,13 @@ void set_entity_material(Scene* scene, int entity_id, float spec_r, float spec_g
     }
 }
 
+void set_entity_uv_speed(Scene* scene, int entity_id, float speed_x, float speed_y) {
+    if (entity_id >= 0 && entity_id < scene->entity_count) {
+        scene->entities[entity_id].uv_speed_x = speed_x;
+        scene->entities[entity_id].uv_speed_y = speed_y;
+    }
+}
+
 void render_scene(const Scene* scene, Shader* shader) {
     bind_lights_to_shader(scene, shader);
 
@@ -147,7 +188,7 @@ void render_scene(const Scene* scene, Shader* shader) {
         const Entity* e = &(scene->entities[i]);
 
         if (!e->is_active) continue;
-        if (!e->is_visible && !global_show_colliders) continue;
+        if (!e->is_visible && !show_colliders) continue;
         
         mat4 model = GLM_MAT4_IDENTITY_INIT;
 
@@ -167,6 +208,8 @@ void render_scene(const Scene* scene, Shader* shader) {
 
         glUniform3f(glGetUniformLocation(shader->id, "specularColor"), e->spec_r, e->spec_g, e->spec_b);
         glUniform1f(glGetUniformLocation(shader->id, "shininess"), e->shininess);
+
+        glUniform2f(glGetUniformLocation(shader->id, "u_uv_speed"), e->uv_speed_x, e->uv_speed_y);
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, e->texture);
@@ -176,7 +219,7 @@ void render_scene(const Scene* scene, Shader* shader) {
             draw_model(e->model);
         }
 
-        if (global_show_colliders && e->is_solid) {
+        if (show_colliders && e->is_solid) {
             render_debug_collider(e, shader);
         }
     }
@@ -195,9 +238,9 @@ void set_ambient_light(Scene* scene, float r, float g, float b) {
     scene->ambient.r = r; scene->ambient.g = g; scene->ambient.b = b;
 }
 
-void set_sun_light(Scene* scene, float dx, float dy, float dz, float r, float g, float b) {
-    scene->sun.dir_x = dx; scene->sun.dir_y = dy; scene->sun.dir_z = dz;
-    scene->sun.r = r; scene->sun.g = g; scene->sun.b = b;
+void set_directional_light(Scene* scene, float dx, float dy, float dz, float r, float g, float b) {
+    scene->directional_light.dir_x = dx; scene->directional_light.dir_y = dy; scene->directional_light.dir_z = dz;
+    scene->directional_light.r = r; scene->directional_light.g = g; scene->directional_light.b = b;
 }
 
 int add_point_light(Scene* scene, float x, float y, float z, float r, float g, float b, float constant, float linear, float quadratic) {
@@ -223,7 +266,8 @@ int add_point_light(Scene* scene, float x, float y, float z, float r, float g, f
         return free_slot;
     }
     
-    printf("WARNING: Max point lights reached!\n");
+    printf("ERROR: Max point lights reached.\n");
+
     return -1;
 }
 
@@ -265,7 +309,8 @@ int add_spot_light(Scene* scene, float x, float y, float z, float dx, float dy, 
         return free_slot;
     } 
     
-    printf("WARNING: Max spot lights reached!\n");
+    printf("ERROR: Max spot lights reached.\n");
+
     return -1;
 }
 
@@ -318,8 +363,8 @@ static void update_entity(Entity* e, float elapsed_time) {
 
 static void bind_lights_to_shader(const Scene* scene, Shader* shader) {
     glUniform3f(glGetUniformLocation(shader->id, "ambientColor"), scene->ambient.r, scene->ambient.g, scene->ambient.b);
-    glUniform3f(glGetUniformLocation(shader->id, "sunLight.direction"), scene->sun.dir_x, scene->sun.dir_y, scene->sun.dir_z);
-    glUniform3f(glGetUniformLocation(shader->id, "sunLight.color"), scene->sun.r, scene->sun.g, scene->sun.b);
+    glUniform3f(glGetUniformLocation(shader->id, "directionalLight.direction"), scene->directional_light.dir_x, scene->directional_light.dir_y, scene->directional_light.dir_z);
+    glUniform3f(glGetUniformLocation(shader->id, "directionalLight.color"), scene->directional_light.r, scene->directional_light.g, scene->directional_light.b);
     
     char uniform_name[64];
     
@@ -383,7 +428,9 @@ static void bind_lights_to_shader(const Scene* scene, Shader* shader) {
 
 static void render_debug_collider(const Entity* e, Shader* shader) {
     Model* obb_cube = get_model("assets/models/cube.obj");
-    if (obb_cube == NULL) return;
+    if (obb_cube == NULL) {
+        return;
+    }
 
     OBB actual_obb = get_entity_obb(e);
 
@@ -413,4 +460,64 @@ static void render_debug_collider(const Entity* e, Shader* shader) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_DEPTH_TEST);
     glUniform1i(glGetUniformLocation(shader->id, "u_has_glow"), e->has_glow);
+}
+
+void init_skybox(Scene* scene) {
+    glGenVertexArrays(1, &scene->skybox.vao);
+    glGenBuffers(1, &scene->skybox.vbo);
+    glBindVertexArray(scene->skybox.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, scene->skybox.vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(unit_cube_vertices), &unit_cube_vertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    load_shader(&scene->skybox.shader, "assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
+    
+    const char* faces[6] = {
+        "assets/textures/skybox/right.jpg",
+        "assets/textures/skybox/left.jpg",
+        "assets/textures/skybox/top.jpg",
+        "assets/textures/skybox/bottom.jpg",
+        "assets/textures/skybox/back.jpg",
+        "assets/textures/skybox/front.jpg"
+    };
+    scene->skybox.texture_id = load_cubemap(faces);
+    scene->skybox.is_active = true;
+}
+
+void render_skybox(Scene* scene, const Camera* camera, mat4 projection_matrix) {
+    if (!scene->skybox.is_active) return;
+
+    glDepthMask(GL_FALSE);
+    use_shader(&(scene->skybox.shader));
+    
+    mat4 view_rot;
+    glm_mat4_copy((vec4*)camera->view_matrix, view_rot);
+
+    view_rot[3][0] = 0.0f;
+    view_rot[3][1] = 0.0f;
+    view_rot[3][2] = 0.0f;
+    
+    glUniformMatrix4fv(glGetUniformLocation(scene->skybox.shader.id, "view"), 1, GL_FALSE, (float*)view_rot);
+    glUniformMatrix4fv(glGetUniformLocation(scene->skybox.shader.id, "projection"), 1, GL_FALSE, (float*)projection_matrix);
+    glUniform3f(glGetUniformLocation(scene->skybox.shader.id, "skyColor"), scene->sky_r, scene->sky_g, scene->sky_b);
+    
+    glBindVertexArray(scene->skybox.vao);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, scene->skybox.texture_id);
+    glUniform1i(glGetUniformLocation(scene->skybox.shader.id, "skybox"), 0);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+    
+    glDepthMask(GL_TRUE); 
+}
+
+void destroy_skybox(Scene* scene) {
+    if (scene->skybox.is_active) {
+        glDeleteProgram(scene->skybox.shader.id);
+        glDeleteVertexArrays(1, &scene->skybox.vao);
+        glDeleteBuffers(1, &scene->skybox.vbo);
+        glDeleteTextures(1, &scene->skybox.texture_id);
+        scene->skybox.is_active = false;
+    }
 }

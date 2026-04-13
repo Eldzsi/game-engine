@@ -3,36 +3,22 @@
 
 #include <math.h>
 
-bool check_aabb_collision(AABB a, AABB b) {
-    return (a.min_x <= b.max_x && a.max_x >= b.min_x) && 
-           (a.min_y <= b.max_y && a.max_y >= b.min_y) && 
-           (a.min_z <= b.max_z && a.max_z >= b.min_z);
-}
-
-float get_vertical_ray_collision(AABB box, float x, float y, float current_z) {
-    if (x >= box.min_x && x <= box.max_x && y >= box.min_y && y <= box.max_y) {
-        if (box.max_z <= current_z + 0.5f) { 
-            return box.max_z;
-        }
-    }
-    return -1e10f;
-}
+#define COLLISION_EPSILON 0.0001f
 
 static bool test_axis(vec3 axis, vec3 t, OBB a, OBB b) {
-    if (glm_vec3_norm2(axis) < 0.0001f) return false;
+    if (glm_vec3_norm2(axis) < COLLISION_EPSILON) {
+        return false;
+    }
 
     vec3 n;
     glm_vec3_normalize_to(axis, n);
 
-    float rA = a.extents[0] * fabs(glm_vec3_dot(a.axes[0], n)) +
-               a.extents[1] * fabs(glm_vec3_dot(a.axes[1], n)) +
-               a.extents[2] * fabs(glm_vec3_dot(a.axes[2], n));
+    float rA = a.extents[0] * fabs(glm_vec3_dot(a.axes[0], n)) + a.extents[1] * fabs(glm_vec3_dot(a.axes[1], n)) + a.extents[2] * fabs(glm_vec3_dot(a.axes[2], n));
 
-    float rB = b.extents[0] * fabs(glm_vec3_dot(b.axes[0], n)) +
-               b.extents[1] * fabs(glm_vec3_dot(b.axes[1], n)) +
-               b.extents[2] * fabs(glm_vec3_dot(b.axes[2], n));
+    float rB = b.extents[0] * fabs(glm_vec3_dot(b.axes[0], n)) + b.extents[1] * fabs(glm_vec3_dot(b.axes[1], n)) + b.extents[2] * fabs(glm_vec3_dot(b.axes[2], n));
 
     float distance = fabs(glm_vec3_dot(t, n));
+
     return distance > (rA + rB); 
 }
 
@@ -60,7 +46,7 @@ float get_vertical_ray_obb_collision(OBB box, float x, float y, float current_z,
     vec3 ray_d = {0.0f, 0.0f, -1.0f};
 
     vec3 local_o, local_d;
-    for(int i=0; i<3; i++) {
+    for (int i = 0; i < 3; i++) {
         local_o[i] = glm_vec3_dot(diff, box.axes[i]);
         local_d[i] = glm_vec3_dot(ray_d, box.axes[i]);
     }
@@ -151,7 +137,7 @@ OBB get_entity_obb(const Entity* entity) {
     obb.center[1] = entity->y + rotated_offset[1];
     obb.center[2] = entity->z + rotated_offset[2];
 
-    for(int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++) {
         obb.axes[0][i] = rot[0][i];
         obb.axes[1][i] = rot[1][i];
         obb.axes[2][i] = rot[2][i];
@@ -170,10 +156,12 @@ bool raycast_scene(Scene* scene, vec3 start, vec3 end, vec3 hit_point, int* hit_
     bool found_hit = false;
     float closest_hit_distance = max_distance;
 
-    for (int i = 0; i < scene->entity_count; ++i) {
+    for (int i = 0; i < scene->entity_count; i++) {
         Entity* e = &(scene->entities[i]);
         
-        if (!e->is_active || !e->is_solid) continue;
+        if (!e->is_active || !e->is_solid) {
+            continue;
+        }
 
         OBB box = get_entity_obb(e);
         float hit_dist;

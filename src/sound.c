@@ -32,15 +32,19 @@ void init_sound() {
         printf("ERROR: Failed to initialize SDL_mixer: %s\n", Mix_GetError());
     } else {
         Mix_AllocateChannels(MAX_CHANNELS);
-        for (int i=0; i<MAX_CHANNELS; i++) channels[i].is_active = false;
-        printf("INFO: SDL_mixer started with %d channels\n", MAX_CHANNELS);
+        for (int i = 0; i < MAX_CHANNELS; i++) {
+            channels[i].is_active = false;
+        }
+        printf("INFO: SDL_mixer started with %d channels.\n", MAX_CHANNELS);
     }
     cache_count = 0;
 }
 
 int play_sound(const char* filename, bool looped) {
     Mix_Chunk* chunk = get_chunk(filename);
-    if (!chunk) return -1;
+    if (!chunk) {
+        return -1;
+    }
 
     int loops = looped ? -1 : 0;
     int channel = Mix_PlayChannel(-1, chunk, loops);
@@ -50,8 +54,10 @@ int play_sound(const char* filename, bool looped) {
         channels[channel].base_volume = 1.0f;
         Mix_Volume(channel, MIX_MAX_VOLUME);
         Mix_SetPosition(channel, 0, 0);
+
         return channel;
     }
+
     return -1;
 }
 
@@ -64,17 +70,24 @@ int play_sound_3d(const char* filename, float x, float y, float z, bool looped) 
         channels[channel].z = z;
         channels[channel].max_distance = 20.0f;
     }
+
     return channel;
 }
 
 void set_sound_max_distance(int channel, float max_dist) {
-    if (channel >= 0 && channel < MAX_CHANNELS) channels[channel].max_distance = max_dist;
+    if (channel >= 0 && channel < MAX_CHANNELS) {
+        channels[channel].max_distance = max_dist;
+    }
 }
 
 void set_sound_volume(int channel, float volume) {
     if (channel >= 0 && channel < MAX_CHANNELS) {
-        if (volume < 0.0f) volume = 0.0f;
-        if (volume > 1.0f) volume = 1.0f;
+        if (volume < 0.0f) {
+            volume = 0.0f;
+        }
+        if (volume > 1.0f) {
+            volume = 1.0f;
+        }
         channels[channel].base_volume = volume;
         if (!channels[channel].is_3d) {
             Mix_Volume(channel, (int)(volume * MIX_MAX_VOLUME));
@@ -84,15 +97,21 @@ void set_sound_volume(int channel, float volume) {
 
 void set_sound_position(int channel, float x, float y, float z) {
     if (channel >= 0 && channel < MAX_CHANNELS) {
-        channels[channel].x = x; channels[channel].y = y; channels[channel].z = z;
+        channels[channel].x = x;
+        channels[channel].y = y;
+        channels[channel].z = z;
     }
 }
 
 bool get_sound_position(int channel, float* x, float* y, float* z) {
     if (channel >= 0 && channel < MAX_CHANNELS && channels[channel].is_active) {
-        *x = channels[channel].x; *y = channels[channel].y; *z = channels[channel].z;
+        *x = channels[channel].x;
+        *y = channels[channel].y;
+        *z = channels[channel].z;
+
         return true;
     }
+
     return false;
 }
 
@@ -117,31 +136,39 @@ void close_sound() {
     for (int i = 0; i < cache_count; i++) {
         Mix_FreeChunk(cache[i].chunk);
     }
+    
     Mix_CloseAudio();
 }
 
 static Mix_Chunk* get_chunk(const char* filename) {
     for (int i = 0; i < cache_count; i++) {
-        if (strcmp(cache[i].filename, filename) == 0) return cache[i].chunk;
+        if (strcmp(cache[i].filename, filename) == 0) {
+            return cache[i].chunk;
+        }
     }
+
     if (cache_count < MAX_SOUNDS) {
         Mix_Chunk* chunk = Mix_LoadWAV(filename);
         if (chunk) {
-            strcpy(cache[cache_count].filename, filename);
+            strncpy(cache[cache_count].filename, filename, sizeof(cache[cache_count].filename) - 1);
+            cache[cache_count].filename[sizeof(cache[cache_count].filename) - 1] = '\0';
+
             cache[cache_count].chunk = chunk;
             cache_count++;
+
             return chunk;
         }
     }
+
     return NULL;
 }
 
 static void update_channel_3d(int i, Camera* camera) {
-    float dx = channels[i].x - camera->position.x;
-    float dy = channels[i].y - camera->position.y;
-    float dz = channels[i].z - camera->position.z;
+    float dx = channels[i].x - camera->position[0];
+    float dy = channels[i].y - camera->position[1];
+    float dz = channels[i].z - camera->position[2];
     
-    float dist = sqrtf(dx*dx + dy*dy + dz*dz);
+    float dist = sqrtf(dx * dx + dy * dy + dz * dz);
     float volume_multiplier = 1.0f;
     
     if (channels[i].max_distance > 0.0f) {
@@ -150,15 +177,7 @@ static void update_channel_3d(int i, Camera* camera) {
         volume_multiplier = 1.0f - norm_dist; 
     }
 
-    float angle_rad = atan2f(dy, dx);
-    float angle_deg = angle_rad * (180.0f / M_PI);
-    float cam_yaw = camera->rotation.z; 
-    
-    float rel_angle = angle_deg - cam_yaw - 90.0f; 
-    while (rel_angle < 0.0f) rel_angle += 360.0f;
-    while (rel_angle >= 360.0f) rel_angle -= 360.0f;
-
-    Mix_SetPosition(i, (Sint16)rel_angle, 0);
+    Mix_SetPosition(i, 0, 0);
     
     float final_volume = channels[i].base_volume * volume_multiplier;
     Mix_Volume(i, (int)(final_volume * MIX_MAX_VOLUME));

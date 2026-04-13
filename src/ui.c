@@ -14,9 +14,9 @@ typedef struct {
     char text[256];
     char font_path[256];
     int size;
-    GLuint texture_id;
     int width;
     int height;
+    GLuint texture_id;
 } CachedText;
 
 typedef struct {
@@ -41,10 +41,10 @@ static TTF_Font* get_ui_font(const char* path, int size);
 
 void init_ui(int screen_width, int screen_height) {
     if (!load_shader(&ui_shader, "assets/shaders/ui.vert", "assets/shaders/ui.frag")) {
-        printf("ERROR: Could not load UI shaders.\n");
+        printf("ERROR: Failed to load UI shaders.\n");
     }
 
-    float vertices[] = {
+    float unit_quad_vertices[] = {
         0.0f, 1.0f, 0.0f, 1.0f,
         1.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 0.0f,
@@ -59,7 +59,7 @@ void init_ui(int screen_width, int screen_height) {
 
     glBindVertexArray(ui_vao);
     glBindBuffer(GL_ARRAY_BUFFER, ui_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(unit_quad_vertices), unit_quad_vertices, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
@@ -97,15 +97,21 @@ void draw_text(const char* text, float x, float y, const char* font_path, int si
         h = (float)cached->height;
     } else {
         TTF_Font* font = get_ui_font(font_path, size);
-        if (!font) return;
+        if (!font) {
+            return;
+        }
 
         SDL_Color color = {255, 255, 255, 255};
         SDL_Surface* raw_surface = TTF_RenderUTF8_Blended(font, text, color);
-        if (!raw_surface) return;
+        if (!raw_surface) {
+            return;
+        }
 
         SDL_Surface* surface = SDL_ConvertSurfaceFormat(raw_surface, SDL_PIXELFORMAT_RGBA32, 0);
         SDL_FreeSurface(raw_surface); 
-        if (!surface) return;
+        if (!surface) {
+            return;
+        }
 
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
@@ -178,9 +184,11 @@ static CachedText* get_cached_text(const char* text, const char* font_path, int 
         if (strcmp(text_cache[i].text, text) == 0 &&
             strcmp(text_cache[i].font_path, font_path) == 0 &&
             text_cache[i].size == size) {
+                
             return &text_cache[i];
         }
     }
+
     return NULL;
 }
 
@@ -197,7 +205,7 @@ static void draw_quad(float x, float y, float width, float height, float r, floa
 
     glUniformMatrix4fv(glGetUniformLocation(ui_shader.id, "projection"), 1, GL_FALSE, (float*)ui_projection);
     glUniformMatrix4fv(glGetUniformLocation(ui_shader.id, "model"), 1, GL_FALSE, (float*)model);
-    glUniform4f(glGetUniformLocation(ui_shader.id, "spriteColor"), r, g, b, a);
+    glUniform4f(glGetUniformLocation(ui_shader.id, "color"), r, g, b, a);
     glUniform1i(glGetUniformLocation(ui_shader.id, "useTexture"), use_tex);
 
     if (use_tex) {
@@ -215,23 +223,25 @@ static void draw_quad(float x, float y, float width, float height, float r, floa
 }
 
 static TTF_Font* get_ui_font(const char* path, int size) {
-    for(int i = 0; i < ui_font_count; i++) {
-        if(strcmp(ui_fonts[i].path, path) == 0 && ui_fonts[i].size == size) {
+    for (int i = 0; i < ui_font_count; i++) {
+        if (strcmp(ui_fonts[i].path, path) == 0 && ui_fonts[i].size == size) {
             return ui_fonts[i].font;
         }
     }
 
-    if(ui_font_count < MAX_UI_FONTS) {
+    if (ui_font_count < MAX_UI_FONTS) {
         TTF_Font* font = TTF_OpenFont(path, size);
-        if(font) {
+        if (font) {
             strcpy(ui_fonts[ui_font_count].path, path);
             ui_fonts[ui_font_count].size = size;
             ui_fonts[ui_font_count].font = font;
             ui_font_count++;
+
             return font;
         } else {
             printf("ERROR: Error loading font: %s\n", TTF_GetError());
         }
     }
+
     return NULL;
 }

@@ -33,13 +33,16 @@ GLuint get_texture(const char* filename) {
     if (texture_count < MAX_TEXTURES) {
         GLuint id = load_texture(filename);
         if (id != 0) {
-            strcpy(texture_cache[texture_count].filename, filename);
+            strncpy(texture_cache[texture_count].filename, filename, sizeof(texture_cache[texture_count].filename) - 1);
+            texture_cache[texture_count].filename[sizeof(texture_cache[texture_count].filename) - 1] = '\0';
+
             texture_cache[texture_count].id = id;
             texture_count++;
+
             return id;
         }
     } else {
-        printf("ERROR: Max textures reached (%d)\n", MAX_TEXTURES);
+        printf("ERROR: Max textures reached. (%d)\n", MAX_TEXTURES);
     }
 
     return 0;
@@ -86,6 +89,7 @@ static GLuint load_texture(const char* filename) {
     SDL_Surface* raw_surface = IMG_Load(filename);
     if (!raw_surface) {
         printf("ERROR: Failed to load texture: %s\n", filename);
+
         return 0;
     }
 
@@ -94,6 +98,7 @@ static GLuint load_texture(const char* filename) {
 
     if (!surface) {
         printf("ERROR: Failed to convert texture format: %s\n", filename);
+
         return 0;
     }
 
@@ -109,5 +114,6 @@ static GLuint load_texture(const char* filename) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     SDL_FreeSurface(surface);
+    
     return texture_name;
 }

@@ -19,23 +19,27 @@ The engine relies on the following standard libraries:
 * **fast_obj:** Fast C/C++ single header OBJ model loader
 * **Lua 5.5.0:** Embedded scripting language for logic, map generation and user interface
 
-**Assets (Download and copy the assets/ folder to the root directory):** [Last modification: 2026-03-30]
+**Assets (Download and copy the assets/ folder to the root directory):** [Last modification: 2026-04-13]
 
-https://drive.google.com/file/d/1XWAY3Q24QNEsdry-wHYSoP4c-4mD2Npk/view?usp=sharing
+https://drive.google.com/file/d/1zkzGykl66kFMTsK7_wMjQOtAylemKhE5/view?usp=sharing
 
-**Dependencies (Download and copy the lib/, bin/, and vendor/ folders to the root directory):** [Last modification: 2026-03-30]
+**Dependencies (Download and copy the lib/, bin/, and vendor/ folders to the root directory):** [Last modification: 2026-04-13]
 
-https://drive.google.com/file/d/1D4dJXiZVat9uNIKrOnFK5pl3i6Eq_3XD/view?usp=sharing
+https://drive.google.com/file/d/18Sf--nq-GXJjEqYtu2Tgfih01b7FV96Q/view?usp=sharing
 
-**Ready to play version:** [Last modification: 2026-03-30]
+**Resources (Download and copy the resources/ folder to the root directory):** [Last modification: 2026-04-13]
 
-https://drive.google.com/file/d/103h14PEDdYhVNg1PV5Rz-SlcZsuLVZZY/view?usp=sharing
+https://drive.google.com/file/d/19V_46KE7_tB7DZIz6MVf7Iod6sF8-RXo/view?usp=sharing
+
+**Ready to play version:** [Last modification: 2026-04-13]
+
+https://drive.google.com/file/d/1ctgNlLW7MWK2TqjUzhOKqcSCJyqvojh5/view?usp=sharing
 
 ## Project Structure
 
 * src/ - The native C core engine (Memory cache, Renderer, Camera, Scripting Bridge).
 * include/ - C header files written for the engine.
-* assets/lua_core/ - The core Lua API wrappers bridging C functions to the scripting environment.
+* lua_core/ - The core Lua API wrappers bridging C functions to the scripting environment.
 * vendor/ - External dependencies (e.g. Lua source code, GLAD).
 * bin/ - The output directory for the compiled executable.
 * resources/ - Independent game modules (levels, game modes) containing their own meta.lua and logic scripts.

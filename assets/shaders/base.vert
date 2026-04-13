@@ -9,14 +9,14 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 objScale;
 
-out vec2 TexCoord;
-out vec3 Normal;
-out vec3 FragPos;
+out vec2 texCoords;
+out vec3 normal;
+out vec3 fragPos;
 
 void main() {
-    FragPos = vec3(model * vec4(aPos, 1.0)); 
-    
     gl_Position = projection * view * model * vec4(aPos, 1.0);
-    TexCoord = aTex * vec2(objScale.x, objScale.y);
-    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    fragPos = vec3(model * vec4(aPos, 1.0)); 
+    texCoords = aTex * vec2(objScale.x, objScale.y);
+    normal = mat3(transpose(inverse(model))) * aNormal;
 }

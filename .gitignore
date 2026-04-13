@@ -8,6 +8,7 @@ lib/
 assets/models/
 assets/sounds/
 assets/textures/
+assets/fonts/
 
 bin/sdl2-config
 
