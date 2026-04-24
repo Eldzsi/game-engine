@@ -128,7 +128,25 @@ static bool load_model(Model* model, const char* filename) {
     max_p[1] = -1e10f;
     max_p[2] = -1e10f;
 
+    int current_mat = -1;
+    int current_start = 0;
+    model->submesh_count = 0;
+
     for (int i = 0; i < model->vertex_count; i++) {
+        int face_idx = i / 3;
+        int mat = mesh->face_materials ? mesh->face_materials[face_idx] : 0;
+        
+        if (mat != current_mat) {
+            if (current_mat != -1 && model->submesh_count < MAX_SUBMESHES) {
+                model->submeshes[model->submesh_count].start_vertex = current_start;
+                model->submeshes[model->submesh_count].vertex_count = i - current_start;
+                model->submeshes[model->submesh_count].material_id = current_mat;
+                model->submesh_count++;
+            }
+            current_mat = mat;
+            current_start = i;
+        }
+        
         fastObjIndex index = mesh->indices[i];
         
         float px = mesh->positions[index.p * 3 + 0];
@@ -168,6 +186,14 @@ static bool load_model(Model* model, const char* filename) {
             model->vertices[i].u = mesh->texcoords[index.t * 2 + 0];
             model->vertices[i].v = mesh->texcoords[index.t * 2 + 1];
         }
+
+    }
+
+    if (current_mat != -1 && model->submesh_count < MAX_SUBMESHES) {
+        model->submeshes[model->submesh_count].start_vertex = current_start;
+        model->submeshes[model->submesh_count].vertex_count = model->vertex_count - current_start;
+        model->submeshes[model->submesh_count].material_id = current_mat;
+        model->submesh_count++;
     }
 
     calculate_model_extents(model, min_p, max_p);
@@ -175,6 +201,17 @@ static bool load_model(Model* model, const char* filename) {
 
     fast_obj_destroy(mesh);
     return true;
+}
+
+void draw_model_submesh(const Model* model, int submesh_index) {
+    if (model->vao == 0 || submesh_index < 0 || submesh_index >= model->submesh_count) {
+        return;
+    }
+
+    glBindVertexArray(model->vao);
+    const SubMesh* sub = &model->submeshes[submesh_index];
+    glDrawArrays(GL_TRIANGLES, sub->start_vertex, sub->vertex_count);
+    glBindVertexArray(0);
 }
 
 static void free_model(Model* model) {
@@ -189,4 +226,12 @@ static void free_model(Model* model) {
     if (model->vao) {
         glDeleteVertexArrays(1, &model->vao);
     }
+}
+
+void clear_model_cache() {
+    for (int i = 0; i < model_count; i++) {
+        free_model(&(model_cache[i].model));
+    }
+    model_count = 0;
+    printf("INFO: Model cache cleared.\n");
 }

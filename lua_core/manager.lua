@@ -6,6 +6,8 @@ local cursorStates = {}
 
 _G.localPlayer = "local_player_entity"
 
+_G.exports = {}
+
 _G.showCursor = function(state, requester)
     requester = requester or "core"
     
@@ -22,6 +24,14 @@ _G.showCursor = function(state, requester)
     end
 
     return originalCursorState(shouldBeVisible)
+end
+
+function isCursorVisible()
+    for _, _ in pairs(cursorStates) do
+        return true
+    end
+    
+    return false
 end
 
 local function resolvePath(filepath, resourcePath)
@@ -52,7 +62,9 @@ function startResource(resourceName)
         version = "1.0",
         type = "script",
         scripts = {},
-        maps = {}
+        maps = {},
+        exports = {},
+        dependencies = {}
     }
 
     local metaEnvironment = {
@@ -84,6 +96,20 @@ function startResource(resourceName)
                     table.insert(metaData.maps, m)
                 end
             end
+        end,
+        exports = function(t)
+            if type(t) == "table" then
+                for _, e in ipairs(t) do
+                    table.insert(metaData.exports, e)
+                end
+            end
+        end,
+        dependencies = function(t)
+            if type(t) == "table" then
+                for _, d in ipairs(t) do
+                    table.insert(metaData.dependencies, d)
+                end
+            end
         end
     }
 
@@ -106,7 +132,20 @@ function startResource(resourceName)
 
     if not validTypes[metaData.type] then
         print("ERROR: Invalid resource type '" .. tostring(metaData.type) .. "' in resource '" .. resourceName .. "'. ")
+
         return false
+    end
+
+    for _, depName in ipairs(metaData.dependencies) do
+        if not activeResources[depName] then
+            print("INFO: Starting dependency '" .. depName .. "' for resource '" .. resourceName .. "'...")
+            local depStarted = startResource(depName)
+            if not depStarted then
+                print("ERROR: Failed to start required dependency '" .. depName .. " for resource '" .. resourceName .. "'.")
+
+                return false
+            end
+        end
     end
 
     if metaData.type == "gamemode" then
@@ -133,7 +172,17 @@ function startResource(resourceName)
 
     resourceEnvironment.createObject = function(model, texture, ...)
         local finalModel = resolvePath(model, resourcePath)
-        local finalTexture = resolvePath(texture, resourcePath)
+        
+        local finalTexture
+        if type(texture) == "table" then
+            finalTexture = {}
+            for i, path in ipairs(texture) do
+                finalTexture[i] = resolvePath(path, resourcePath)
+            end
+        else
+            finalTexture = resolvePath(texture, resourcePath)
+        end
+
         local id = _G.createObject(finalModel, finalTexture, ...)
         if id then
             table.insert(activeResources[resourceName].objects, id)
@@ -300,30 +349,42 @@ function startResource(resourceName)
                 end
             end
 
-            if id and data.target then
-                local tx, ty, tz = table.unpack(data.target)
+            if id and (data.target or data.targetRotation) then
+                local tx, ty, tz = table.unpack(data.target or {x, y, z})
+                local trx, try, trz = table.unpack(data.targetRotation or {rx, ry, rz})
                 local duration = data.duration or 2000
                 
-                if data.loop then
-                    _G.moveObject(id, duration, tx, ty, tz)
+                if data.pingpong or data.loop then
+                    _G.moveObject(id, duration, tx, ty, tz, trx, try, trz)
                     local toTarget = false
                     
+                    local currentTrx, currentTry, currentTrz = trx, try, trz
+                    
                     local timerId = resourceEnvironment.setTimer(function()
-                        if toTarget then
-                            _G.moveObject(id, duration, tx, ty, tz)
-                        else
-                            _G.moveObject(id, duration, x, y, z)
+                        if data.loop then
+                            currentTrx = currentTrx + (trx - rx)
+                            currentTry = currentTry + (try - ry)
+                            currentTrz = currentTrz + (trz - rz)
+                            _G.moveObject(id, duration, tx, ty, tz, currentTrx, currentTry, currentTrz)
+                            
+                        elseif data.pingpong then
+                            if toTarget then
+                                _G.moveObject(id, duration, tx, ty, tz, trx, try, trz)
+                            else
+                                _G.moveObject(id, duration, x, y, z, rx, ry, rz)
+                            end
+                            toTarget = not toTarget
                         end
-                        toTarget = not toTarget
                     end, duration, 0)
                     
                     if timerId then
                         table.insert(activeResources[resourceName].mapEntities.timers, timerId)
                     end
                 elseif data.autoStart then
-                    _G.moveObject(id, duration, tx, ty, tz)
+                    _G.moveObject(id, duration, tx, ty, tz, trx, try, trz)
                 else
                     _G.setElementData(id, "targetPos", {tx, ty, tz})
+                    _G.setElementData(id, "targetRot", {trx, try, trz})
                     _G.setElementData(id, "moveDuration", duration)
                 end
             end
@@ -407,10 +468,8 @@ function startResource(resourceName)
                 if _G.destroySpotLight then
                     _G.destroySpotLight(light.id)
                 end
-            else if
-                _G.destroyPointLight then
-                    _G.destroyPointLight(light.id)
-                end
+            elseif _G.destroyPointLight then
+                _G.destroyPointLight(light.id)
             end
             removeFromLightList(res.lights, light.id)
         end
@@ -468,6 +527,17 @@ function startResource(resourceName)
             stopResource(resourceName)
 
             return false
+        end
+    end
+
+    if #metaData.exports > 0 then
+        _G.exports[resourceName] = {}
+        for _, funcName in ipairs(metaData.exports) do
+            if type(resourceEnvironment[funcName]) == "function" then
+                _G.exports[resourceName][funcName] = resourceEnvironment[funcName]
+            else
+                print("ERROR: Exported function '" .. funcName .. "' not found in resource '" .. resourceName .. "'")
+            end
         end
     end
 
@@ -546,6 +616,17 @@ function stopResource(resourceName)
 
     _G.showCursor(false, resourceName)
 
+    if _G.exports[resourceName] then
+        _G.exports[resourceName] = nil
+    end
+
+    if isGamemode then
+        if _G.clearEngineCaches then
+            _G.clearEngineCaches()
+        end
+        collectgarbage("collect")
+    end
+
     activeResources[resourceName] = nil
     print("INFO: Resource '" .. resourceName .. "' stopped.")
 
@@ -563,8 +644,8 @@ function getResourceInfo(resourceName)
     
     local metaData = {
         name = resourceName,
-        author = "Ismeretlen",
-        description = "Nincs leírás",
+        author = "Unknown",
+        description = "-",
         version = "1.0",
         type = "script"
     }

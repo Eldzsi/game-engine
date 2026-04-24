@@ -7,5 +7,6 @@ void init_texture_cache();
 GLuint get_texture(const char* filename);
 void free_texture_cache();
 GLuint load_cubemap(const char* faces[6]);
+void clear_texture_cache();
 
 #endif

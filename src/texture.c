@@ -117,3 +117,11 @@ static GLuint load_texture(const char* filename) {
     
     return texture_name;
 }
+
+void clear_texture_cache() {
+    for (int i = 0; i < texture_count; i++) {
+        glDeleteTextures(1, &(texture_cache[i].id));
+    }
+    texture_count = 0;
+    printf("INFO: Texture cache cleared.\n");
+}

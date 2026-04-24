@@ -245,3 +245,19 @@ static TTF_Font* get_ui_font(const char* path, int size) {
 
     return NULL;
 }
+
+void clear_ui_cache() {
+    for (int i = 0; i < text_cache_count; i++) {
+        glDeleteTextures(1, &(text_cache[i].texture_id));
+    }
+    text_cache_count = 0;
+
+    for (int i = 0; i < ui_font_count; i++) {
+        if (ui_fonts[i].font) {
+            TTF_CloseFont(ui_fonts[i].font);
+        }
+    }
+    ui_font_count = 0;
+
+    printf("INFO: UI text cache and fonts cleared.\n");
+}

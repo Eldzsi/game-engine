@@ -20,6 +20,14 @@ typedef struct {
     float current_height;
     mat4 view_matrix;
     int ground_entity_id;
+
+    bool enable_forward;
+    bool enable_backward;
+    bool enable_left;
+    bool enable_right;
+    bool enable_jump;
+    bool enable_sprint;
+    bool enable_crouch;
 } Camera;
 
 void init_camera(Camera* camera);

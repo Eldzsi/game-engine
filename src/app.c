@@ -98,6 +98,9 @@ void init_app(App* app) {
     app->scene.terrain.vao = 0;
     app->scene.terrain.heights = NULL;
 
+    app->uptime = 0.0;
+    app->delta_time = 0.0;
+
     app->is_running = true;
 }
 
@@ -113,7 +116,7 @@ void render_app(App* app) {
     glUniformMatrix4fv(glGetUniformLocation(app->base_shader.id, "projection"), 1, GL_FALSE, (float*)app->projection_matrix);
     set_view_matrix(&(app->camera), &(app->base_shader));
 
-    render_scene(&(app->scene), &(app->base_shader));
+    render_scene(&(app->scene), &(app->camera), &(app->base_shader));
 
     render_terrain(&(app->scene.terrain), &(app->base_shader));
 
@@ -126,10 +129,23 @@ void render_app(App* app) {
 }
 
 void update_app(App* app) {
-    double current_time = (double)SDL_GetTicks() / 1000;
-    double elapsed_time = current_time - app->uptime;
+    static Uint64 last_counter = 0;
+    if (last_counter == 0) {
+        last_counter = SDL_GetPerformanceCounter();
+    }
 
-    app->uptime = current_time;
+    Uint64 current_counter = SDL_GetPerformanceCounter();
+
+    Uint64 counter_delta = current_counter - last_counter;
+    last_counter = current_counter;
+
+    double elapsed_time = (double)counter_delta / (double)SDL_GetPerformanceFrequency();
+
+    if (elapsed_time > 0.1) {
+        elapsed_time = 0.1;
+    }
+
+    app->uptime += elapsed_time;
     app->delta_time = elapsed_time;
 
     if (SDL_GetRelativeMouseMode() == SDL_TRUE) {
@@ -202,28 +218,38 @@ static void handle_keydown_event(App* app, SDL_KeyboardEvent* key) {
         
     switch (key->keysym.scancode) {
         case SDL_SCANCODE_W: 
-            set_camera_speed(&(app->camera), 1);
+            if (app->camera.enable_forward) {
+                set_camera_speed(&(app->camera), 1);
+            }
             break;
         case SDL_SCANCODE_S:
-            set_camera_speed(&(app->camera), -1);
+            if (app->camera.enable_backward) {
+                set_camera_speed(&(app->camera), -1);
+            }
             break;
         case SDL_SCANCODE_A:
-            set_camera_side_speed(&(app->camera), -1);
+            if (app->camera.enable_left) {
+                set_camera_side_speed(&(app->camera), -1);
+            }
             break;
         case SDL_SCANCODE_D:
-            set_camera_side_speed(&(app->camera), 1);
+            if (app->camera.enable_right) {
+                set_camera_side_speed(&(app->camera), 1);
+            }
             break;
         case SDL_SCANCODE_SPACE:
-            if (app->camera.is_grounded) {
-                trigger_lua_event("onPlayerJump", "s", "root");
+            if (app->camera.enable_jump) {
+                if (app->camera.is_grounded) {
+                    trigger_lua_event("onPlayerJump", "s", "root");
+                }
+                camera_jump(&(app->camera));
             }
-            camera_jump(&(app->camera));
             break;
         case SDL_SCANCODE_LCTRL:
-            app->camera.is_crouching = true;
+            if (app->camera.enable_crouch) app->camera.is_crouching = true;
             break;
         case SDL_SCANCODE_LSHIFT:
-            app->camera.is_sprinting = true;
+            if (app->camera.enable_sprint) app->camera.is_sprinting = true;
             break;
         case SDL_SCANCODE_F1: {
             bool current_state = get_show_colliders();
@@ -238,13 +264,13 @@ static void handle_keydown_event(App* app, SDL_KeyboardEvent* key) {
 static void handle_keyup_event(App* app, SDL_KeyboardEvent* key) {
     trigger_lua_event("onKey", "ssb", "root", SDL_GetScancodeName(key->keysym.scancode), false);
 
-    switch (key->keysym.scancode) {
+   switch (key->keysym.scancode) {
         case SDL_SCANCODE_W:
         case SDL_SCANCODE_S: 
-            if (is_key_pressed(SDL_SCANCODE_W)) {
+            if (is_key_pressed(SDL_SCANCODE_W) && app->camera.enable_forward) {
                 set_camera_speed(&(app->camera), 1);
             }
-            else if (is_key_pressed(SDL_SCANCODE_S)) {
+            else if (is_key_pressed(SDL_SCANCODE_S) && app->camera.enable_backward) {
                 set_camera_speed(&(app->camera), -1);
             }
             else {
@@ -253,10 +279,10 @@ static void handle_keyup_event(App* app, SDL_KeyboardEvent* key) {
             break;
         case SDL_SCANCODE_A:
         case SDL_SCANCODE_D:
-            if (is_key_pressed(SDL_SCANCODE_A)) {
+            if (is_key_pressed(SDL_SCANCODE_A) && app->camera.enable_left) {
                 set_camera_side_speed(&(app->camera), -1); 
             }
-            else if (is_key_pressed(SDL_SCANCODE_D)) {
+            else if (is_key_pressed(SDL_SCANCODE_D) && app->camera.enable_right) {
                 set_camera_side_speed(&(app->camera), 1);
             }
             else {

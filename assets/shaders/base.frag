@@ -57,6 +57,10 @@ void main() {
 
     vec4 texColor = texture(texture_diffuse, animatedTexCoords);
 
+    if (texColor.a < 0.1) {
+        discard;
+    }
+
     if (u_has_glow) {
         FragColor = texColor * vec4(u_glow_color, 1.0);
     }

@@ -44,6 +44,14 @@ void init_camera(Camera* camera) {
     camera->current_height = 1.8f;
 
     camera->ground_entity_id = -1;
+
+    camera->enable_forward = true;
+    camera->enable_backward = true;
+    camera->enable_left = true;
+    camera->enable_right = true;
+    camera->enable_jump = true;
+    camera->enable_sprint = true;
+    camera->enable_crouch = true;
 }
 
 void update_camera(Camera* camera, Scene* scene, Terrain* terrain, double time) {

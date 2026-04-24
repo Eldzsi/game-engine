@@ -1,4 +1,5 @@
 #include "scene.h"
+#include "camera.h"
 #include "model.h"
 #include "texture.h"
 #include "collision.h"
@@ -80,9 +81,9 @@ void init_scene(Scene* scene) {
     scene->skybox.is_active = false;
 }
 
-int create_entity(Scene* scene, const char* modelname, const char* texturename, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz) {
+int create_entity(Scene* scene, const char* modelname, const char** texturenames, int texture_count, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz) { 
     int free_slot = -1;
-    
+
     for (int i = 0; i < MAX_ENTITIES; i++) {
         if (!scene->entities[i].is_active) {
             free_slot = i;
@@ -100,12 +101,15 @@ int create_entity(Scene* scene, const char* modelname, const char* texturename, 
     }
 
     Model* model = get_model(modelname);
-    GLuint tex = get_texture(texturename);
 
     if (model != NULL) {
         Entity* e = &(scene->entities[free_slot]);
         e->model = model;
-        e->texture = tex; 
+        
+        e->texture_count = texture_count > MAX_MATERIALS ? MAX_MATERIALS : texture_count;
+        for (int i = 0; i < e->texture_count; i++) {
+            e->textures[i] = get_texture(texturenames[i]);
+        }
 
         e->x = x;
         e->y = y;
@@ -116,6 +120,10 @@ int create_entity(Scene* scene, const char* modelname, const char* texturename, 
         e->sx = sx;
         e->sy = sy;
         e->sz = sz;
+
+        e->cx = sx;
+        e->cy = sy;
+        e->cz = sz;
 
         e->spec_r = 0.3f;
         e->spec_g = 0.3f;
@@ -141,6 +149,8 @@ int create_entity(Scene* scene, const char* modelname, const char* texturename, 
 
         e->uv_speed_x = 0.0f;
         e->uv_speed_y = 0.0f;
+
+        e->attached_to_camera = false;
         
         return free_slot;
     }
@@ -153,6 +163,14 @@ void set_entity_scale(Scene* scene, int entity_id, float sx, float sy, float sz)
         scene->entities[entity_id].sx = sx;
         scene->entities[entity_id].sy = sy;
         scene->entities[entity_id].sz = sz;
+    }
+}
+
+void set_entity_collider_scale(Scene* scene, int entity_id, float cx, float cy, float cz) {
+    if (entity_id >= 0 && entity_id < scene->entity_count) {
+        scene->entities[entity_id].cx = cx;
+        scene->entities[entity_id].cy = cy;
+        scene->entities[entity_id].cz = cz;
     }
 }
 
@@ -181,24 +199,48 @@ void set_entity_uv_speed(Scene* scene, int entity_id, float speed_x, float speed
     }
 }
 
-void render_scene(const Scene* scene, Shader* shader) {
+void render_scene(const Scene* scene, Camera* camera, Shader* shader) {
     bind_lights_to_shader(scene, shader);
 
     for (int i = 0; i < scene->entity_count; i++) {
         const Entity* e = &(scene->entities[i]);
 
-        if (!e->is_active) continue;
-        if (!e->is_visible && !show_colliders) continue;
+        if (!e->is_active) {
+            continue;
+        }
+        if (!e->is_visible && !show_colliders) {
+            continue;
+        }
         
-        mat4 model = GLM_MAT4_IDENTITY_INIT;
+        if (!e->attached_to_camera) {
+            float dx = e->x - camera->position[0];
+            float dy = e->y - camera->position[1];
+            float dz = e->z - camera->position[2];
+            
+            if ((dx * dx + dy * dy + dz * dz) > (300.0f * 300.0f)) {
+                continue; 
+            }
+        }
 
-        glm_translate(model, (float[]){e->x, e->y, e->z});
+        mat4 model;
+        if (e->attached_to_camera) {
+            glm_mat4_inv(camera->view_matrix, model);
 
-        glm_rotate(model, glm_rad(e->rx), (float[]){1.0f, 0.0f, 0.0f});
-        glm_rotate(model, glm_rad(e->ry), (float[]){0.0f, 1.0f, 0.0f});
-        glm_rotate(model, glm_rad(e->rz), (float[]){0.0f, 0.0f, 1.0f});
-
-        glm_scale(model, (float[]){e->sx, e->sy, e->sz});
+            glm_translate(model, (vec3){e->attach_ox, e->attach_oy, e->attach_oz});
+            
+            glm_rotate(model, glm_rad(e->attach_rx), (vec3){1.0f, 0.0f, 0.0f});
+            glm_rotate(model, glm_rad(e->attach_ry), (vec3){0.0f, 1.0f, 0.0f});
+            glm_rotate(model, glm_rad(e->attach_rz), (vec3){0.0f, 0.0f, 1.0f});
+            
+            glm_scale(model, (vec3){e->sx, e->sy, e->sz});
+        } else {
+            glm_mat4_identity(model);
+            glm_translate(model, (vec3){e->x, e->y, e->z});
+            glm_rotate(model, glm_rad(e->rx), (vec3){1.0f, 0.0f, 0.0f});
+            glm_rotate(model, glm_rad(e->ry), (vec3){0.0f, 1.0f, 0.0f});
+            glm_rotate(model, glm_rad(e->rz), (vec3){0.0f, 0.0f, 1.0f});
+            glm_scale(model, (vec3){e->sx, e->sy, e->sz});
+        }
         
         glUniformMatrix4fv(glGetUniformLocation(shader->id, "model"), 1, GL_FALSE, (float*)model);
         glUniform3f(glGetUniformLocation(shader->id, "objScale"), e->sx, e->sy, e->sz);
@@ -211,12 +253,25 @@ void render_scene(const Scene* scene, Shader* shader) {
 
         glUniform2f(glGetUniformLocation(shader->id, "u_uv_speed"), e->uv_speed_x, e->uv_speed_y);
         
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, e->texture);
-        glUniform1i(glGetUniformLocation(shader->id, "diffuse_texture"), 0);
-
         if (e->is_visible) {
-            draw_model(e->model);
+            for (int s = 0; s < e->model->submesh_count; s++) {
+                int mat_id = e->model->submeshes[s].material_id;
+                GLuint tex = 0;
+                
+                if (e->texture_count == 1) {
+                    tex = e->textures[0];
+                } else if (mat_id >= 0 && mat_id < e->texture_count) {
+                    tex = e->textures[mat_id];
+                } else if (e->texture_count > 0) {
+                    tex = e->textures[0];
+                }
+
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, tex);
+                glUniform1i(glGetUniformLocation(shader->id, "diffuse_texture"), 0);
+
+                draw_model_submesh(e->model, s);
+            }
         }
 
         if (show_colliders && e->is_solid) {
@@ -228,7 +283,9 @@ void render_scene(const Scene* scene, Shader* shader) {
 void update_scene(Scene* scene, double elapsed_time) {
     for (int i = 0; i < scene->entity_count; i++) {
         Entity* e = &(scene->entities[i]);
-        if (!e->is_active) continue;
+        if (!e->is_active) {
+            continue;
+        }
         
         update_entity(e, (float)elapsed_time);
     }

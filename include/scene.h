@@ -12,12 +12,18 @@
 #define MAX_POINT_LIGHTS 20
 #define MAX_SPOT_LIGHTS 20
 
+#define MAX_MATERIALS 8
+
 typedef struct Entity {
     Model* model;
-    GLuint texture;
+    
+    GLuint textures[MAX_MATERIALS];
+    int texture_count;
+
     float x, y, z;
     float rx, ry, rz;
     float sx, sy, sz;
+    float cx, cy, cz;
 
     float spec_r;
     float spec_g;
@@ -47,6 +53,10 @@ typedef struct Entity {
 
     float uv_speed_x;
     float uv_speed_y;
+
+    bool attached_to_camera;
+    float attach_ox, attach_oy, attach_oz;
+    float attach_rx, attach_ry, attach_rz;
 } Entity;
 
 typedef struct PointLight {
@@ -104,13 +114,15 @@ typedef struct Scene {
 bool get_show_colliders();
 void set_show_colliders(bool show);
 void init_scene(Scene* scene);
-void render_scene(const Scene* scene, Shader* shader);
+void render_scene(const Scene* scene, Camera* camera, Shader* shader);
 void update_scene(Scene* scene, double elapsed_time);
-int create_entity(Scene* scene, const char* modelname, const char* texturename, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz);
+int create_entity(Scene* scene, const char* modelname, const char** texturenames, int texture_count, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz);
 void set_entity_scale(Scene* scene, int entity_id, float sx, float sy, float sz);
+void set_entity_collider_scale(Scene* scene, int entity_id, float cx, float cy, float cz);
 void set_entity_glow(Scene* scene, int entity_id, bool has_glow, float r, float g, float b);
 void set_entity_material(Scene* scene, int entity_id, float spec_r, float spec_g, float spec_b, float shininess);
 void set_entity_uv_speed(Scene* scene, int entity_id, float speed_x, float speed_y);
+void attach_entity_to_camera(Scene* scene, int entity_id, float ox, float oy, float oz, float rx, float ry, float rz);
 void set_ambient_light(Scene* scene, float r, float g, float b);
 void set_directional_light(Scene* scene, float dx, float dy, float dz, float r, float g, float b);
 int add_point_light(Scene* scene, float x, float y, float z, float r, float g, float b, float constant, float linear, float quadratic);

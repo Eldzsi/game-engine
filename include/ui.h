@@ -12,5 +12,6 @@ void draw_image(float x, float y, float width, float height, const char* image_p
 void draw_text(const char* text, float x, float y, const char* font_path, int size, float r, float g, float b, float a, const char* align);
 void clear_text_cache();
 void destroy_ui();
+void clear_ui_cache();
 
 #endif

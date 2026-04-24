@@ -5,6 +5,7 @@
 vendor/
 lib/
 
+resources/**/assets/
 assets/models/
 assets/sounds/
 assets/textures/

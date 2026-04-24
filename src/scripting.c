@@ -2,6 +2,7 @@
 #include "sound.h"
 #include "ui.h"
 #include "texture.h"
+#include "model.h"
 #include "scene.h"
 #include "particle.h"
 #include "collision.h"
@@ -14,6 +15,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <math.h>
+#include <string.h>
 
 static lua_State* L;
 static Camera* engine_camera = NULL;
@@ -233,7 +235,21 @@ static int l_get_sound_position(lua_State* L) {
 
 static int l_create_object(lua_State* L) {
     const char* modelname = luaL_checkstring(L, 1);
-    const char* texturename = luaL_checkstring(L, 2); 
+    
+    const char* texturenames[MAX_MATERIALS];
+    int texture_count = 0;
+
+    if (lua_istable(L, 2)) {
+        int len = lua_rawlen(L, 2);
+        for (int i = 1; i <= len && i <= MAX_MATERIALS; i++) {
+            lua_rawgeti(L, 2, i);
+            texturenames[texture_count++] = lua_tostring(L, -1);
+            lua_pop(L, 1);
+        }
+    } else {
+        texturenames[0] = luaL_checkstring(L, 2);
+        texture_count = 1;
+    }
 
     float x = (float)luaL_checknumber(L, 3);          
     float y = (float)luaL_checknumber(L, 4);
@@ -246,17 +262,15 @@ static int l_create_object(lua_State* L) {
     float sz = (float)luaL_optnumber(L, 11, 1.0);
 
     if (engine_scene != NULL) {
-        int actual_id = create_entity(engine_scene, modelname, texturename, x, y, z, rx, ry, rz, sx, sy, sz);
+        int actual_id = create_entity(engine_scene, modelname, texturenames, texture_count, x, y, z, rx, ry, rz, sx, sy, sz);
         
         if (actual_id != -1) {
             lua_pushinteger(L, actual_id);
-
             return 1;
         }
     }
 
     lua_pushboolean(L, false); 
-
     return 1;
 }
 
@@ -268,7 +282,11 @@ static int l_destroy_element(lua_State* L) {
         
         e->is_active = false;
         e->model = NULL;
-        e->texture = 0;
+        for (int i = 0; i < e->texture_count; i++) {
+            e->textures[i] = 0;
+        }
+        e->texture_count = 0;
+
         e->x = 0; e->y = 0; e->z = 0;
         e->is_moving = false;
         
@@ -344,6 +362,21 @@ static int l_set_object_size(lua_State* L) {
         lua_pushboolean(L, false);
     }
 
+    return 1;
+}
+
+static int l_set_element_collider_scale(lua_State* L) {
+    int id = (int)luaL_checkinteger(L, 1);
+    float cx = (float)luaL_checknumber(L, 2);
+    float cy = (float)luaL_checknumber(L, 3);
+    float cz = (float)luaL_checknumber(L, 4);
+
+    if (engine_scene) {
+        set_entity_collider_scale(engine_scene, id, cx, cy, cz);
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
+    }
     return 1;
 }
 
@@ -923,6 +956,121 @@ static int l_unload_terrain(lua_State* L) {
     return 1;
 }
 
+static int l_toggle_control(lua_State* L) {
+    const char* control = luaL_checkstring(L, 1);
+    bool state = lua_toboolean(L, 2);
+
+    if (!engine_camera) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    if (strcmp(control, "forward") == 0) {
+        engine_camera->enable_forward = state;
+        if (!state && engine_camera->speed[1] > 0) engine_camera->speed[1] = 0.0f;
+    } else if (strcmp(control, "backward") == 0) {
+        engine_camera->enable_backward = state;
+        if (!state && engine_camera->speed[1] < 0) engine_camera->speed[1] = 0.0f;
+    } else if (strcmp(control, "left") == 0) {
+        engine_camera->enable_left = state;
+        if (!state && engine_camera->speed[0] < 0) engine_camera->speed[0] = 0.0f;
+    } else if (strcmp(control, "right") == 0) {
+        engine_camera->enable_right = state;
+        if (!state && engine_camera->speed[0] > 0) engine_camera->speed[0] = 0.0f;
+    } else if (strcmp(control, "jump") == 0) {
+        engine_camera->enable_jump = state;
+    } else if (strcmp(control, "sprint") == 0) {
+        engine_camera->enable_sprint = state;
+        if (!state) engine_camera->is_sprinting = false;
+    } else if (strcmp(control, "crouch") == 0) {
+        engine_camera->enable_crouch = state;
+        if (!state) engine_camera->is_crouching = false;
+    } else {
+        printf("WARNING: Unknown control '%s' in toggleControl\n", control);
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    lua_pushboolean(L, true);
+    return 1;
+}
+
+static int l_set_control_state(lua_State* L) {
+    const char* control = luaL_checkstring(L, 1);
+    bool state = lua_toboolean(L, 2);
+
+    if (!engine_camera) {
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    if (strcmp(control, "forward") == 0) {
+        engine_camera->speed[1] = state ? 1.0f : 0.0f;
+    } else if (strcmp(control, "backward") == 0) {
+        engine_camera->speed[1] = state ? -1.0f : 0.0f;
+    } else if (strcmp(control, "left") == 0) {
+        engine_camera->speed[0] = state ? -1.0f : 0.0f;
+    } else if (strcmp(control, "right") == 0) {
+        engine_camera->speed[0] = state ? 1.0f : 0.0f;
+    } else if (strcmp(control, "jump") == 0) {
+        if (state) camera_jump(engine_camera);
+    } else if (strcmp(control, "sprint") == 0) {
+        engine_camera->is_sprinting = state;
+    } else if (strcmp(control, "crouch") == 0) {
+        engine_camera->is_crouching = state;
+    } else {
+        printf("WARNING: Unknown control '%s' in setControlState\n", control);
+        lua_pushboolean(L, false);
+        return 1;
+    }
+
+    lua_pushboolean(L, true);
+
+    return 1;
+}
+
+static int l_attach_to_camera(lua_State* L) {
+    int id = (int)luaL_checkinteger(L, 1);
+    float ox = (float)luaL_checknumber(L, 2);
+    float oy = (float)luaL_checknumber(L, 3);
+    float oz = (float)luaL_checknumber(L, 4);
+    float rx = (float)luaL_optnumber(L, 5, 0);
+    float ry = (float)luaL_optnumber(L, 6, 0);
+    float rz = (float)luaL_optnumber(L, 7, 0);
+
+    if (engine_scene && id >= 0 && id < engine_scene->entity_count) {
+        Entity* e = &engine_scene->entities[id];
+        e->attached_to_camera = true;
+        e->attach_ox = ox; e->attach_oy = oy; e->attach_oz = oz;
+        e->attach_rx = rx; e->attach_ry = ry; e->attach_rz = rz;
+        lua_pushboolean(L, true);
+    } else {
+        lua_pushboolean(L, false);
+    }
+    return 1;
+}
+
+static int l_get_cursor_position(lua_State* L) {
+    int x, y;
+    SDL_GetMouseState(&x, &y);
+    
+    lua_pushinteger(L, x);
+    lua_pushinteger(L, y);
+    
+    return 2;
+}
+
+static int l_clear_engine_caches(lua_State* L) {
+    clear_model_cache();
+    clear_texture_cache();
+    clear_sound_cache();
+    clear_ui_cache();
+    
+    lua_pushboolean(L, true);
+
+    return 1;
+}
+
 void trigger_lua_event(const char* event_name, const char* format, ...) {
     if (!L) return;
     lua_getglobal(L, "triggerEvent"); 
@@ -988,6 +1136,7 @@ void init_scripting(Camera* camera, Scene* scene, Terrain* terrain) {
     lua_register(L, "stopObject", l_stop_object);
     lua_register(L, "isObjectMoving", l_is_object_moving);
     lua_register(L, "setObjectSize", l_set_object_size);
+    lua_register(L, "setElementColliderScale", l_set_element_collider_scale);
     lua_register(L, "setObjectGlow", l_set_object_glow);
     lua_register(L, "setObjectMaterial", l_set_object_material);
     lua_register(L, "setObjectUVSpeed", l_set_object_uv_speed);
@@ -1020,6 +1169,11 @@ void init_scripting(Camera* camera, Scene* scene, Terrain* terrain) {
     lua_register(L, "loadTerrain", l_load_terrain);
     lua_register(L, "getTerrainHeight", l_get_terrain_height);
     lua_register(L, "unloadTerrain", l_unload_terrain);
+    lua_register(L, "toggleControl", l_toggle_control);
+    lua_register(L, "setControlState", l_set_control_state);
+    lua_register(L, "attachObjectToCamera", l_attach_to_camera);
+    lua_register(L, "getCursorPosition", l_get_cursor_position);
+    lua_register(L, "clearEngineCaches", l_clear_engine_caches);
     
     if (luaL_dofile(L, "lua_core/init.lua") != LUA_OK) {
         printf("ERROR: Lua script: %s\n", lua_tostring(L, -1));

@@ -4,13 +4,12 @@ local font = "/assets/fonts/montserrat.ttf"
 
 local menuState = "main"
 
-local levels = {"test", "desert", "lava"}
+local levels = {"test", "desert", "lava", "survival"}
 local levelButtons = {} 
 
 local btnPlay = {x = 0, y = 0, w = 200, h = 50}
 local btnExitImg = {x = 0, y = 0, w = 64, h = 64}
 local btnResume = {x = 0, y = 0, w = 250, h = 40}
-local btnSettings = {x = 0, y = 0, w = 250, h = 40}
 local btnToMenu = {x = 0, y = 0, w = 250, h = 40}
 local btnQuit = {x = 0, y = 0, w = 250, h = 40}
 
@@ -110,22 +109,18 @@ function drawPauseMenu()
     drawRectangle(0, 0, sx, sy, 0.0, 0.0, 0.0, 0.7)
     drawText("Paused", sx / 2, sy/2 - 230, font, 40, 1, 1, 1, 1, "center")
 
-    local startY = sy/2 - 170
+    local startY = sy/2 - 120
     local gap = 60
 
     btnResume.x, btnResume.y = (sx / 2) - (btnResume.w / 2), startY
     drawRectangle(btnResume.x, btnResume.y, btnResume.w, btnResume.h, 0.2, 0.6, 1.0, 1.0)
     drawText("Resume", sx / 2, btnResume.y + 8, font, 20, 1, 1, 1, 1, "center")
 
-    btnSettings.x, btnSettings.y = (sx / 2) - (btnSettings.w / 2), startY + gap
-    drawRectangle(btnSettings.x, btnSettings.y, btnSettings.w, btnSettings.h, 0.4, 0.4, 0.4, 1.0)
-    drawText("Settings", sx / 2, btnSettings.y + 8, font, 20, 1, 1, 1, 1, "center")
-
-    btnToMenu.x, btnToMenu.y = (sx / 2) - (btnToMenu.w / 2), startY + (gap * 2)
+    btnToMenu.x, btnToMenu.y = (sx / 2) - (btnToMenu.w / 2), startY + gap
     drawRectangle(btnToMenu.x, btnToMenu.y, btnToMenu.w, btnToMenu.h, 0.8, 0.5, 0.2, 1.0)
     drawText("Main Menu", sx / 2, btnToMenu.y + 8, font, 20, 1, 1, 1, 1, "center")
 
-    btnQuit.x, btnQuit.y = (sx / 2) - (btnQuit.w / 2), startY + (gap * 3)
+    btnQuit.x, btnQuit.y = (sx / 2) - (btnQuit.w / 2), startY + (gap * 2)
     drawRectangle(btnQuit.x, btnQuit.y, btnQuit.w, btnQuit.h, 0.8, 0.2, 0.2, 1.0)
     drawText("Quit Game", sx / 2, btnQuit.y + 8, font, 20, 1, 1, 1, 1, "center")
 
@@ -189,7 +184,6 @@ function onMenuClick(button, isPressed, mx, my)
         if isMouseInBox(mx, my, btnResume) then
             menuState = "hidden"
             showCursor(false)
-        elseif isMouseInBox(mx, my, btnSettings) then
         elseif isMouseInBox(mx, my, btnToMenu) then
             for _, resName in ipairs(levels) do
                 if resName ~= "" then

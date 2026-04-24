@@ -115,9 +115,9 @@ OBB get_entity_obb(const Entity* entity) {
     OBB obb;
     Model* m_data = entity->model;
 
-    obb.extents[0] = (m_data->base_extents[0] * entity->sx) / 2.0f;
-    obb.extents[1] = (m_data->base_extents[1] * entity->sy) / 2.0f;
-    obb.extents[2] = (m_data->base_extents[2] * entity->sz) / 2.0f;
+    obb.extents[0] = (m_data->base_extents[0] * entity->cx) / 2.0f;
+    obb.extents[1] = (m_data->base_extents[1] * entity->cy) / 2.0f;
+    obb.extents[2] = (m_data->base_extents[2] * entity->cz) / 2.0f;
 
     mat4 rot = GLM_MAT4_IDENTITY_INIT;
     glm_rotate(rot, glm_rad(entity->rx), (float[]){1.0f, 0.0f, 0.0f});

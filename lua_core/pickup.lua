@@ -51,7 +51,8 @@ end)
 addEventHandler("onZoneHit", function(zoneId)
     local pickupId = zoneToPickup[zoneId]
     if pickupId then
-        triggerEvent("onPickupHit", pickupId, pickupId) 
+        local pickupType = getElementData(pickupId, "type")
+        triggerEvent("onPickupHit", pickupId, pickupType) 
     end
 end)
 

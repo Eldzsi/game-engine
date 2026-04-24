@@ -182,3 +182,13 @@ static void update_channel_3d(int i, Camera* camera) {
     float final_volume = channels[i].base_volume * volume_multiplier;
     Mix_Volume(i, (int)(final_volume * MIX_MAX_VOLUME));
 }
+
+void clear_sound_cache() {
+    for (int i = 0; i < cache_count; i++) {
+        if (cache[i].chunk) {
+            Mix_FreeChunk(cache[i].chunk);
+        }
+    }
+    cache_count = 0;
+    printf("INFO: Sound cache cleared.\n");
+}
