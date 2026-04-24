@@ -11,6 +11,5 @@ scripts {
 exports {
     "toggleFlashlight",
     "setFlashlightColor",
-    "setFlashlightSize",
-    "setFlashlightKey"
+    "setFlashlightSize"
 }
