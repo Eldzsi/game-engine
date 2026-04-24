@@ -19,21 +19,21 @@ The engine relies on the following standard libraries:
 * **fast_obj:** Fast C/C++ single header OBJ model loader
 * **Lua 5.5.0:** Embedded scripting language for logic, map generation and user interface
 
-**Assets (Download and copy the assets/ folder to the root directory):** [Last modification: 2026-04-13]
+**Assets (Download and copy the assets/ folder to the root directory):** [Last modification: 2026-04-24]
 
-https://drive.google.com/file/d/1zkzGykl66kFMTsK7_wMjQOtAylemKhE5/view?usp=sharing
+https://drive.google.com/file/d/1nty2YmvIhNInGq1Rb6-UTNyI_GZCh7zH/view?usp=sharing
 
-**Dependencies (Download and copy the lib/, bin/, and vendor/ folders to the root directory):** [Last modification: 2026-04-13]
+**Dependencies (Download and copy the lib/, bin/, and vendor/ folders to the root directory):** [Last modification: 2026-04-24]
 
-https://drive.google.com/file/d/18Sf--nq-GXJjEqYtu2Tgfih01b7FV96Q/view?usp=sharing
+https://drive.google.com/file/d/1DV_bsh0U-Mi9vfTQ2JHg78GKE0untdHJ/view?usp=sharing
 
-**Resources (Download and copy the resources/ folder to the root directory):** [Last modification: 2026-04-13]
+**Resources (Download and copy the resources/ folder to the root directory):** [Last modification: 2026-04-24]
 
-https://drive.google.com/file/d/19V_46KE7_tB7DZIz6MVf7Iod6sF8-RXo/view?usp=sharing
+https://drive.google.com/file/d/1FBi2Tm12pmTjWBWeYgUvZJ-nXapVTYXK/view?usp=sharing
 
-**Ready to play version:** [Last modification: 2026-04-13]
+**Ready to play version:** [Last modification: 2026-04-24]
 
-https://drive.google.com/file/d/1ctgNlLW7MWK2TqjUzhOKqcSCJyqvojh5/view?usp=sharing
+https://drive.google.com/file/d/1G55lCLhZrnZSEOMC_Yo5aGs2ryQccls9/view?usp=sharing
 
 ## Project Structure
 
