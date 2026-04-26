@@ -11,3 +11,5 @@ scripts {
 maps {
     "maps/map.lua"
 }
+
+thumbnail "assets/icons/thumbnail.jpg"

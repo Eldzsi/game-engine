@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_CACHED_TEXTS 100
+#define MAX_CACHED_TEXTS 50
 #define MAX_UI_FONTS 10
 
 typedef struct {
@@ -23,7 +23,16 @@ typedef struct {
     char path[256];
     int size;
     TTF_Font* font;
+    bool failed;
 } UIFont;
+
+static struct {
+    GLint projection;
+    GLint model;
+    GLint color;
+    GLint use_texture;
+    GLint image;
+} ui_uniforms;
 
 static GLuint ui_vao, ui_vbo;
 static Shader ui_shader;
@@ -31,6 +40,7 @@ static mat4 ui_projection;
 
 static CachedText text_cache[MAX_CACHED_TEXTS];
 static int text_cache_count = 0;
+static int next_cache_index = 0;
 
 static UIFont ui_fonts[MAX_UI_FONTS];
 static int ui_font_count = 0;
@@ -43,6 +53,12 @@ void init_ui(int screen_width, int screen_height) {
     if (!load_shader(&ui_shader, "assets/shaders/ui.vert", "assets/shaders/ui.frag")) {
         printf("ERROR: Failed to load UI shaders.\n");
     }
+
+    ui_uniforms.projection = glGetUniformLocation(ui_shader.id, "projection");
+    ui_uniforms.model = glGetUniformLocation(ui_shader.id, "model");
+    ui_uniforms.color = glGetUniformLocation(ui_shader.id, "color");
+    ui_uniforms.use_texture = glGetUniformLocation(ui_shader.id, "useTexture");
+    ui_uniforms.image = glGetUniformLocation(ui_shader.id, "image");
 
     float unit_quad_vertices[] = {
         0.0f, 1.0f, 0.0f, 1.0f,
@@ -86,10 +102,13 @@ void draw_image(float x, float y, float width, float height, const char* image_p
 }
 
 void draw_text(const char* text, float x, float y, const char* font_path, int size, float r, float g, float b, float a, const char* align) {
+    if (text == NULL || text[0] == '\0') {
+        return;
+    }
+
     CachedText* cached = get_cached_text(text, font_path, size);
     GLuint tex;
     float w, h;
-    bool is_temporary = false;
 
     if (cached) {
         tex = cached->texture_id;
@@ -117,7 +136,6 @@ void draw_text(const char* text, float x, float y, const char* font_path, int si
         glBindTexture(GL_TEXTURE_2D, tex);
         
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
         
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -125,43 +143,49 @@ void draw_text(const char* text, float x, float y, const char* font_path, int si
 
         w = (float)surface->w;
         h = (float)surface->h;
-        is_temporary = true;
 
+        if (text_cache[next_cache_index].texture_id != 0) {
+            glDeleteTextures(1, &text_cache[next_cache_index].texture_id);
+        }
+
+        strncpy(text_cache[next_cache_index].text, text, 255);
+        text_cache[next_cache_index].text[255] = '\0';
+        strncpy(text_cache[next_cache_index].font_path, font_path, 255);
+        text_cache[next_cache_index].font_path[255] = '\0';
+
+        text_cache[next_cache_index].size = size;
+        text_cache[next_cache_index].texture_id = tex;
+        text_cache[next_cache_index].width = surface->w;
+        text_cache[next_cache_index].height = surface->h;
+
+        next_cache_index = (next_cache_index + 1) % MAX_CACHED_TEXTS;
         if (text_cache_count < MAX_CACHED_TEXTS) {
-            strncpy(text_cache[text_cache_count].text, text, 255);
-            text_cache[text_cache_count].text[255] = '\0';
-            
-            strncpy(text_cache[text_cache_count].font_path, font_path, 255);
-            text_cache[text_cache_count].font_path[255] = '\0';
-
-            text_cache[text_cache_count].size = size;
-            text_cache[text_cache_count].texture_id = tex;
-            text_cache[text_cache_count].width = surface->w;
-            text_cache[text_cache_count].height = surface->h;
             text_cache_count++;
-            
-            is_temporary = false;
         }
         
         SDL_FreeSurface(surface);
     }
 
     float draw_x = x;
-    if (strcmp(align, "center") == 0) draw_x -= w / 2.0f;
-    else if (strcmp(align, "right") == 0) draw_x -= w;
+    if (strcmp(align, "center") == 0) {
+        draw_x -= w / 2.0f;
+    }
+    else if (strcmp(align, "right") == 0) {
+        draw_x -= w;
+    }
 
     draw_quad(draw_x, y, w, h, r, g, b, a, true, tex);
-
-    if (is_temporary) {
-        glDeleteTextures(1, &tex);
-    }
 }
 
 void clear_text_cache() {
-    for (int i = 0; i < text_cache_count; i++) {
-        glDeleteTextures(1, &text_cache[i].texture_id);
+    for (int i = 0; i < MAX_CACHED_TEXTS; i++) {
+        if (text_cache[i].texture_id != 0) {
+            glDeleteTextures(1, &text_cache[i].texture_id);
+            text_cache[i].texture_id = 0;
+        }
     }
     text_cache_count = 0;
+    next_cache_index = 0;
 }
 
 void destroy_ui() {
@@ -181,65 +205,74 @@ void destroy_ui() {
 
 static CachedText* get_cached_text(const char* text, const char* font_path, int size) {
     for (int i = 0; i < text_cache_count; i++) {
-        if (strcmp(text_cache[i].text, text) == 0 &&
-            strcmp(text_cache[i].font_path, font_path) == 0 &&
-            text_cache[i].size == size) {
-                
+        if (text_cache[i].size == size &&
+            strcmp(text_cache[i].text, text) == 0 &&
+            strcmp(text_cache[i].font_path, font_path) == 0) {
             return &text_cache[i];
         }
     }
-
     return NULL;
 }
 
-static void draw_quad(float x, float y, float width, float height, float r, float g, float b, float a, bool use_tex, GLuint tex) {
-    use_shader(&ui_shader);
-    
-    glDisable(GL_DEPTH_TEST);
+void begin_ui_frame() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST);
 
-    mat4 model = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(model, (float[]){x, y, 0.0f});
-    glm_scale(model, (float[]){width, height, 1.0f});
-
-    glUniformMatrix4fv(glGetUniformLocation(ui_shader.id, "projection"), 1, GL_FALSE, (float*)ui_projection);
-    glUniformMatrix4fv(glGetUniformLocation(ui_shader.id, "model"), 1, GL_FALSE, (float*)model);
-    glUniform4f(glGetUniformLocation(ui_shader.id, "color"), r, g, b, a);
-    glUniform1i(glGetUniformLocation(ui_shader.id, "useTexture"), use_tex);
-
-    if (use_tex) {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glUniform1i(glGetUniformLocation(ui_shader.id, "image"), 0);
-    }
+    use_shader(&ui_shader);
 
     glBindVertexArray(ui_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void end_ui_frame() {
     glBindVertexArray(0);
 
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_BLEND);
 }
 
+static void draw_quad(float x, float y, float width, float height, float r, float g, float b, float a, bool use_tex, GLuint tex) {
+    mat4 model;
+    glm_mat4_identity(model);
+    glm_translate(model, (vec3){x, y, 0.0f});
+    glm_scale(model, (vec3){width, height, 1.0f});
+
+    glUniformMatrix4fv(ui_uniforms.projection, 1, GL_FALSE, (float*)ui_projection);
+    glUniformMatrix4fv(ui_uniforms.model, 1, GL_FALSE, (float*)model);
+    glUniform4f(ui_uniforms.color, r, g, b, a);
+    glUniform1i(ui_uniforms.use_texture, use_tex ? 1 : 0);
+
+    if (use_tex) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glUniform1i(ui_uniforms.image, 0);
+    }
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
 static TTF_Font* get_ui_font(const char* path, int size) {
     for (int i = 0; i < ui_font_count; i++) {
-        if (strcmp(ui_fonts[i].path, path) == 0 && ui_fonts[i].size == size) {
-            return ui_fonts[i].font;
+        if (ui_fonts[i].size == size && strcmp(ui_fonts[i].path, path) == 0) {
+            return ui_fonts[i].failed ? NULL : ui_fonts[i].font;
         }
     }
 
     if (ui_font_count < MAX_UI_FONTS) {
         TTF_Font* font = TTF_OpenFont(path, size);
-        if (font) {
-            strcpy(ui_fonts[ui_font_count].path, path);
-            ui_fonts[ui_font_count].size = size;
-            ui_fonts[ui_font_count].font = font;
-            ui_font_count++;
+        strncpy(ui_fonts[ui_font_count].path, path, 255);
+        ui_fonts[ui_font_count].size = size;
 
+        if (font) {
+            ui_fonts[ui_font_count].font = font;
+            ui_fonts[ui_font_count].failed = false;
+            ui_font_count++;
             return font;
         } else {
-            printf("ERROR: Error loading font: %s\n", TTF_GetError());
+            ui_fonts[ui_font_count].font = NULL;
+            ui_fonts[ui_font_count].failed = true;
+            ui_font_count++;
+            printf("CRITICAL ERROR: Failed to load font: %s. Path might be wrong or file missing.\n", path);
         }
     }
 
@@ -247,17 +280,14 @@ static TTF_Font* get_ui_font(const char* path, int size) {
 }
 
 void clear_ui_cache() {
-    for (int i = 0; i < text_cache_count; i++) {
-        glDeleteTextures(1, &(text_cache[i].texture_id));
-    }
-    text_cache_count = 0;
-
+    clear_text_cache();
+    
     for (int i = 0; i < ui_font_count; i++) {
         if (ui_fonts[i].font) {
             TTF_CloseFont(ui_fonts[i].font);
         }
+        ui_fonts[i].font = NULL;
     }
     ui_font_count = 0;
-
     printf("INFO: UI text cache and fonts cleared.\n");
 }

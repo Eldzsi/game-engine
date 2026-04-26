@@ -33,7 +33,7 @@ end
 addEventHandler("onRender", drawMenu)
 
 function drawMainMenu()
-    drawImage(0, 0, sx, sy, "assets/textures/menu_background.png")
+    drawImage(0, 0, sx, sy, "assets/textures/menu_background.jpg")
     drawText("v1.0.0", 5, sy - 22, font, 16, 1, 1, 1, 1, "left")
 
     btnPlay.x = (sx / 2) - (btnPlay.w / 2)
@@ -47,7 +47,7 @@ function drawMainMenu()
 end
 
 function drawLevels()
-    drawImage(0, 0, sx, sy, "assets/textures/menu_background.png")
+    drawImage(0, 0, sx, sy, "assets/textures/menu_background.jpg")
 
     local boxW, boxH = 220, 220
     local gapX, gapY = 30, 40
@@ -72,7 +72,7 @@ function drawLevels()
         startY = (sy / 2) - (totalGridHeight / 2)
     end
 
-    drawText("Choose a Level", sx / 2, startY - 80, font, 40, 1, 1, 1, 1, "center")
+    drawText("Choose a Level", sx / 2, startY - 75, font, 40, 1, 1, 1, 1, "center")
 
     if totalValid > 0 then
         for i, resName in ipairs(validLevels) do
@@ -94,9 +94,24 @@ function drawLevels()
             local info = (type(getResourceInfo) == "function") and getResourceInfo(resName) or nil
             local displayName = (info and info.name) or resName
 
-            drawRectangle(x, y, boxW, boxH, 0.25, 0.3, 0.35, 1.0)
-            
-            drawText(displayName, x + (boxW / 2), y + (boxH / 2) - 10, font, 28, 1, 1, 1, 1, "center")
+            local border = 5
+            local titleHeight = 45
+
+            drawRectangle(x, y, boxW, boxH, 0.12, 0.12, 0.12, 1.0)
+
+            if info and info.thumbnail then
+                local imgW = boxW - (border * 2)
+                local imgH = boxH - titleHeight - border
+                
+                drawImage(x + border, y + border, imgW, imgH, info.thumbnail)
+                                
+                drawText(displayName, x + (boxW / 2), y + boxH - (titleHeight / 2) - 10, font, 18, 1, 1, 1, 1, "center")
+            else
+                local innerW = boxW - (border * 2)
+                local innerH = boxH - (border * 2)
+                drawRectangle(x + border, y + border, innerW, innerH, 0.25, 0.3, 0.35, 1.0)
+                drawText(displayName, x + (boxW / 2), y + (boxH / 2) - 10, font, 24, 1, 1, 1, 1, "center")
+            end
 
             table.insert(levelButtons, {x = x, y = y, w = boxW, h = boxH, resource = resName})
         end
@@ -107,9 +122,9 @@ end
 
 function drawPauseMenu()
     drawRectangle(0, 0, sx, sy, 0.0, 0.0, 0.0, 0.7)
-    drawText("Paused", sx / 2, sy/2 - 230, font, 40, 1, 1, 1, 1, "center")
+    drawText("Paused", sx / 2, sy/2 - 145, font, 40, 1, 1, 1, 1, "center")
 
-    local startY = sy/2 - 120
+    local startY = sy/2 - 85
     local gap = 60
 
     btnResume.x, btnResume.y = (sx / 2) - (btnResume.w / 2), startY

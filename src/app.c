@@ -105,25 +105,27 @@ void init_app(App* app) {
 }
 
 void render_app(App* app) {
+    update_screen_size_cache();
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     render_skybox(&(app->scene), &(app->camera), app->projection_matrix);
 
     use_shader(&(app->base_shader));
 
-    float time = (float)SDL_GetTicks() / 1000.0f;
+    float time = (float)app->uptime;
     glUniform1f(glGetUniformLocation(app->base_shader.id, "u_time"), time);
     glUniformMatrix4fv(glGetUniformLocation(app->base_shader.id, "projection"), 1, GL_FALSE, (float*)app->projection_matrix);
     set_view_matrix(&(app->camera), &(app->base_shader));
 
     render_scene(&(app->scene), &(app->camera), &(app->base_shader));
-
     render_terrain(&(app->scene.terrain), &(app->base_shader));
-
     render_particles(&(app->fire_ps), app->camera.view_matrix, app->projection_matrix);
 
+    begin_ui_frame();
     trigger_lua_event("onRender", "sf", "root", app->delta_time);
     trigger_lua_event("onPostRender", "sf", "root", app->delta_time);
+    end_ui_frame();
 
     SDL_GL_SwapWindow(app->window);
 }
@@ -154,6 +156,19 @@ void update_app(App* app) {
         update_sounds(&(app->camera));
         update_particles(&(app->fire_ps), elapsed_time);
     }
+
+    static Uint64 last = 0;
+
+    Uint64 now = SDL_GetPerformanceCounter();
+    double dt = (now - last) / (double)SDL_GetPerformanceFrequency();
+
+    double target = 1.0 / 60.0;
+
+    if (dt < target) {
+        SDL_Delay((Uint32)((target - dt) * 1000.0));
+    }
+
+    last = SDL_GetPerformanceCounter();
 }
 
 void handle_app_events(App* app) {

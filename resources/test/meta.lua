@@ -1,6 +1,6 @@
 name "Test"
 author "Lengyel Gábor"
-description "-"
+description "Test level"
 version "1.0"
 type "gamemode"
 
@@ -17,3 +17,5 @@ maps {
 dependencies {
     "flashlight"
 }
+
+thumbnail "assets/images/thumbnail.jpg"

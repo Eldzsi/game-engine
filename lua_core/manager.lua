@@ -64,7 +64,8 @@ function startResource(resourceName)
         scripts = {},
         maps = {},
         exports = {},
-        dependencies = {}
+        dependencies = {},
+        thumbnail = nil
     }
 
     local metaEnvironment = {
@@ -82,6 +83,9 @@ function startResource(resourceName)
         end,
         type = function(v)
             metaData.type = string.lower(tostring(v))
+        end,
+        thumbnail = function(v)
+            metaData.thumbnail = tostring(v)
         end,
         scripts = function(t)
             if type(t) == "table" then
@@ -647,7 +651,8 @@ function getResourceInfo(resourceName)
         author = "Unknown",
         description = "-",
         version = "1.0",
-        type = "script"
+        type = "script",
+        thumbnail = nil
     }
 
     local metaEnvironment = {
@@ -666,15 +671,27 @@ function getResourceInfo(resourceName)
         type = function(v)
             metaData.type = string.lower(tostring(v))
         end,
+        thumbnail = function(v)
+            metaData.thumbnail = tostring(v)
+        end,
         scripts = function()
         end,
         maps = function()
+        end,
+        dependencies = function() 
+        end,
+        exports = function()
         end
     }
 
     local fn, err = loadfile(metaPath, "t", metaEnvironment)
     if fn then
         pcall(fn)
+
+        if metaData.thumbnail then
+            metaData.thumbnail = "/" .. resourcePath .. metaData.thumbnail
+        end
+
         return metaData
     end
     

@@ -106,6 +106,7 @@ addEventHandler("onPickupHit", function(pickupType)
         gameState.coins = gameState.coins + 1    
     elseif pickupType == "finish" then
         gameState.isWon = true
+        gameState.activeCheckpoint = #checkpoints + 1
     end
 end)
 

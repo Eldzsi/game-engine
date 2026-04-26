@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_TEXTURES 100
+#define MAX_TEXTURES 128
 
 typedef struct {
     char filename[256];

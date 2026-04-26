@@ -23,6 +23,9 @@ static Scene* engine_scene = NULL;
 static ParticleSystem* engine_ps = NULL;
 static Terrain* engine_terrain = NULL;
 
+static int cached_screen_w = 800;
+static int cached_screen_h = 600;
+
 static int l_set_sky_color(lua_State* L) {
     float r = (float)luaL_checknumber(L, 1);
     float g = (float)luaL_checknumber(L, 2);
@@ -599,24 +602,24 @@ static int l_set_spot_light(lua_State* L) {
     return 1;
 }
 
-static int l_get_screen_size(lua_State* L) {
+void update_screen_size_cache() {
     SDL_Window* win = SDL_GL_GetCurrentWindow();
-    int w = 800, h = 600;
     if (win) {
-        SDL_GetWindowSize(win, &w, &h);
+        SDL_GetWindowSize(win, &cached_screen_w, &cached_screen_h);
     }
-    
-    lua_pushnumber(L, w);
-    lua_pushnumber(L, h);
+}
 
-    return 2; 
+static int l_get_screen_size(lua_State* L) {
+    lua_pushnumber(L, cached_screen_w);
+    lua_pushnumber(L, cached_screen_h);
+    return 2;
 }
 
 static int l_draw_rectangle(lua_State* L) {
-    float x = (float)luaL_checknumber(L, 1);
-    float y = (float)luaL_checknumber(L, 2);
-    float w = (float)luaL_checknumber(L, 3);
-    float h = (float)luaL_checknumber(L, 4);
+    float x = (float)(int)luaL_checknumber(L, 1);
+    float y = (float)(int)luaL_checknumber(L, 2);
+    float w = (float)(int)luaL_checknumber(L, 3);
+    float h = (float)(int)luaL_checknumber(L, 4);
     float r = (float)luaL_checknumber(L, 5);
     float g = (float)luaL_checknumber(L, 6);
     float b = (float)luaL_checknumber(L, 7);
@@ -630,10 +633,10 @@ static int l_draw_rectangle(lua_State* L) {
 }
 
 static int l_draw_image(lua_State* L) {
-    float x = (float)luaL_checknumber(L, 1);
-    float y = (float)luaL_checknumber(L, 2);
-    float w = (float)luaL_checknumber(L, 3);
-    float h = (float)luaL_checknumber(L, 4);
+    float x = (float)(int)luaL_checknumber(L, 1);
+    float y = (float)(int)luaL_checknumber(L, 2);
+    float w = (float)(int)luaL_checknumber(L, 3);
+    float h = (float)(int)luaL_checknumber(L, 4);
 
     const char* path = luaL_checkstring(L, 5);
     
@@ -665,8 +668,8 @@ static int l_show_cursor(lua_State* L) {
 
 static int l_draw_text(lua_State* L) {
     const char* text = luaL_checkstring(L, 1);
-    float x = (float)luaL_checknumber(L, 2);
-    float y = (float)luaL_checknumber(L, 3);
+    float x = (float)(int)luaL_checknumber(L, 2);
+    float y = (float)(int)luaL_checknumber(L, 3);
     const char* font = luaL_checkstring(L, 4);
     int size = (int)luaL_checkinteger(L, 5);
     

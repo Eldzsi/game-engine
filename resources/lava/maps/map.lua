@@ -104,7 +104,7 @@ pickup {
 movingObject {
     model = "/assets/models/cube.obj", texture = "/assets/textures/stone.png", 
     position = {0, 45, 4.0}, scale = {2.5, 2.5, 0.5},
-    target = {0, 45, 9.0}, duration = 3000, pingpong = true
+    target = {0, 45, 9.5}, duration = 3000, pingpong = true
 }
 
 object {
@@ -149,12 +149,12 @@ pickup {
 
 object {
     model = "/assets/models/cube.obj", texture = "/assets/textures/stone.png",
-    position = {-1, 76, 11.8}, scale = {1.5, 1.5, 0.5}
+    position = {-1, 76, 11.5}, scale = {1.5, 1.5, 0.5}
 }
 
 movingObject {
     model = "/assets/models/cube.obj", texture = "/assets/textures/stone.png", 
-    position = {0, 82, 11.0}, scale = {2.0, 2.0, 0.5},
+    position = {0, 82, 10.0}, scale = {2.0, 2.0, 0.5},
     target = {0, 82, 15.0}, duration = 2000, pingpong = true
 }
 

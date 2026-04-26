@@ -9,3 +9,5 @@ scripts {
     "scripts/environment.lua",
     "scripts/flashlight.lua"
 }
+
+thumbnail "assets/images/thumbnail.jpg"

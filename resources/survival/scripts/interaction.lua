@@ -165,7 +165,7 @@ addEventHandler("onClick", function(button, isPressed)
                 
                 if placingItemId == "campfire" then
                     local cx, cy, cz = getElementPosition(ghostObject)
-                    local fireId = createFire(cx, cy, cz + 0.3, 0.8, 0.8)
+                    local fireId = createFire(cx, cy, cz + 0.3, 0.8, 0.5)
                     if fireId then
                         setElementData(ghostObject, "fire:id", fireId)
                     end
