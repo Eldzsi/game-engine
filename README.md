@@ -27,13 +27,13 @@ https://drive.google.com/file/d/1nty2YmvIhNInGq1Rb6-UTNyI_GZCh7zH/view?usp=shari
 
 https://drive.google.com/file/d/1DV_bsh0U-Mi9vfTQ2JHg78GKE0untdHJ/view?usp=sharing
 
-**Resources (Download and copy the resources/ folder to the root directory):** [Last modification: 2026-04-24]
+**Resources (Download and copy the resources/ folder to the root directory):** [Last modification: 2026-04-26]
 
-https://drive.google.com/file/d/1FBi2Tm12pmTjWBWeYgUvZJ-nXapVTYXK/view?usp=sharing
+https://drive.google.com/file/d/1y1DoBl088KmEpLaR1tNjw_iZU-orgZyx/view?usp=sharing
 
-**Ready to play version:** [Last modification: 2026-04-24]
+**Ready to play version:** [Last modification: 2026-04-26]
 
-https://drive.google.com/file/d/1G55lCLhZrnZSEOMC_Yo5aGs2ryQccls9/view?usp=sharing
+https://drive.google.com/file/d/1NUDRyYOS2n-mHgLRZ07UnfpKAC3koLiX/view?usp=sharing
 
 ## Project Structure
 
